@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">Work Usage</string>
+    <string name="widget_name">ChatGPT Work Usage</string>
+    <string name="widget_description">Five-hour and weekly limits and earned resets.</string>
+    <string name="widget_title">ChatGPT Work</string>
+    <string name="five_hour">Five-hour limit</string>
+    <string name="weekly">Weekly limit</string>
+    <string name="resets_left">Earned resets left</string>
+    <string name="unknown">—</string>
+    <string name="no_snapshot">Waiting for sync</string>
+    <string name="connect_hint">Tap to connect</string>
+    <string name="refresh_usage">Refresh usage</string>
+
+    <color name="background">#10151C</color>
+    <color name="surface">#192129</color>
+    <color name="widget_background">#121A20</color>
+    <color name="widget_panel">#202A31</color>
+    <color name="widget_outline">#2B363C</color>
+    <color name="on_surface">#F1F7F6</color>
+    <color name="muted">#ACBCC3</color>
+    <color name="mint">#A1F0CB</color>
+    <color name="blue">#AFCFFF</color>
+    <color name="track">#39484F</color>
+    <color name="alert">#FFD293</color>
+
+    <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:colorAccent">@color/mint</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>
