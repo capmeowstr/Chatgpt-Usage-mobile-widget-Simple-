@@ -149,7 +149,7 @@ public final class MainActivity extends Activity {
         primary.setOnClickListener(v -> accountAction());
         add(content, primary, 18);
 
-        TextView pin = button("Add to home screen", false);
+        TextView pin = button(getString(R.string.widget_add), false);
         pin.setOnClickListener(v -> addWidget());
         add(content, pin, 8);
 
@@ -410,15 +410,31 @@ public final class MainActivity extends Activity {
 
     private void addWidget() {
         AppWidgetManager manager = AppWidgetManager.getInstance(this);
-        if (manager.isRequestPinAppWidgetSupported()
-                && manager.requestPinAppWidget(UsageWidget.component(this), null, null)) {
+        if (!manager.isRequestPinAppWidgetSupported()) {
+            showWidgetPinFallback();
             return;
         }
+        UsageWidget.Variant[] variants = UsageWidget.Variant.values();
+        CharSequence[] labels = new CharSequence[variants.length];
+        for (int i = 0; i < variants.length; i++) {
+            labels[i] = getText(variants[i].pickerLabel);
+        }
         new AlertDialog.Builder(this)
-                .setTitle("Add ChatGPT Work Usage")
-                .setMessage("Touch and hold your home screen. Open Widgets, find ChatGPT Work Usage, "
-                        + "and drag it onto your home screen.")
-                .setPositiveButton("OK", null)
+                .setTitle(R.string.widget_add)
+                .setItems(labels, (dialog, index) -> {
+                    if (!manager.requestPinAppWidget(variants[index].component(this), null, null)) {
+                        showWidgetPinFallback();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showWidgetPinFallback() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.widget_add)
+                .setMessage(R.string.widget_pin_fallback)
+                .setPositiveButton(android.R.string.ok, null)
                 .show();
     }
 
@@ -431,6 +447,15 @@ public final class MainActivity extends Activity {
         FrameLayout preview = new FrameLayout(this);
         content.addView(preview, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(158)));
+        LinearLayout compact = row();
+        FrameLayout fiveHourPreview = new FrameLayout(this);
+        FrameLayout weeklyPreview = new FrameLayout(this);
+        LinearLayout.LayoutParams firstPreview = new LinearLayout.LayoutParams(0, dp(52), 1f);
+        firstPreview.setMarginEnd(dp(8));
+        compact.addView(fiveHourPreview, firstPreview);
+        compact.addView(weeklyPreview, new LinearLayout.LayoutParams(0, dp(52), 1f));
+        add(content, compact, 8);
+
         RadioGroup styles = new RadioGroup(this);
         styles.setOrientation(RadioGroup.VERTICAL);
         add(content, styles, 12);
@@ -447,11 +472,12 @@ public final class MainActivity extends Activity {
                 styles.check(option.getId());
             }
         }
-        renderWidgetPreview(preview, current);
+        renderWidgetPreviews(preview, fiveHourPreview, weeklyPreview, current);
         styles.setOnCheckedChangeListener((group, id) -> {
             RadioButton option = group.findViewById(id);
             if (option != null) {
-                renderWidgetPreview(preview, (WidgetAppearance) option.getTag());
+                renderWidgetPreviews(preview, fiveHourPreview, weeklyPreview,
+                        (WidgetAppearance) option.getTag());
             }
         });
 
@@ -466,9 +492,17 @@ public final class MainActivity extends Activity {
                 .show();
     }
 
-    private void renderWidgetPreview(FrameLayout preview, WidgetAppearance appearance) {
+    private void renderWidgetPreviews(FrameLayout full, FrameLayout fiveHour, FrameLayout weekly,
+                                      WidgetAppearance appearance) {
+        renderWidgetPreview(full, appearance, UsageWidget.Variant.FULL);
+        renderWidgetPreview(fiveHour, appearance, UsageWidget.Variant.FIVE_HOUR);
+        renderWidgetPreview(weekly, appearance, UsageWidget.Variant.WEEKLY);
+    }
+
+    private void renderWidgetPreview(FrameLayout preview, WidgetAppearance appearance,
+                                     UsageWidget.Variant variant) {
         preview.removeAllViews();
-        preview.addView(UsageWidget.preview(this, appearance).apply(this, preview),
+        preview.addView(UsageWidget.preview(this, appearance, variant).apply(this, preview),
                 new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT));
     }

@@ -8,6 +8,7 @@ local.properties
 *.apk
 !/downloads/ChatGPT_Work_Usage_v1_2.apk
 !/downloads/ChatGPT_Work_Usage_v1_3.apk
+!/downloads/ChatGPT_Work_Usage_v1_4.apk
 *.aab
 *.jks
 *.keystore

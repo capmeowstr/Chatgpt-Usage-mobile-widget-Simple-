@@ -73,4 +73,14 @@ enum WidgetAppearance {
         views.setInt(R.id.widget_week_bar, "setColorFilter", weekAccent);
         views.setInt(R.id.widget_refresh, "setColorFilter", shortAccent);
     }
+
+    void applyCompact(RemoteViews views, boolean weekly) {
+        int accent = weekly ? weekAccent : shortAccent;
+        views.setInt(android.R.id.background, "setBackgroundResource", background);
+        views.setTextColor(R.id.widget_compact_label, secondary);
+        views.setTextColor(R.id.widget_compact_value, accent);
+        views.setInt(R.id.widget_compact_track, "setColorFilter", track);
+        views.setInt(R.id.widget_compact_bar, "setColorFilter", accent);
+        views.setInt(R.id.widget_refresh, "setColorFilter", accent);
+    }
 }

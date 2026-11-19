@@ -1,7 +1,20 @@
 <resources>
     <string name="app_name">Work Usage</string>
     <string name="widget_name">ChatGPT Work Usage</string>
+    <string name="widget_five_hour_name">Work Usage · Five-hour</string>
+    <string name="widget_weekly_name">Work Usage · Weekly</string>
     <string name="widget_description">Five-hour and weekly limits and earned resets.</string>
+    <string name="widget_compact_description">Remaining allowance for a single limit.</string>
+    <string name="widget_compact_placeholder">Usage left</string>
+    <string name="widget_compact_five_hour">5-hour left</string>
+    <string name="widget_compact_weekly">Weekly left</string>
+    <string name="widget_compact_summary">%1$s, %2$s left</string>
+    <string name="widget_compact_unavailable">%1$s, usage unavailable</string>
+    <string name="widget_add">Add to home screen</string>
+    <string name="widget_pick_full">Full (4 × 2)</string>
+    <string name="widget_pick_five_hour">Five-hour (2 × 1)</string>
+    <string name="widget_pick_weekly">Weekly (2 × 1)</string>
+    <string name="widget_pin_fallback">Touch and hold your home screen, open Widgets, then look for Work Usage.</string>
     <string name="widget_title">ChatGPT Work</string>
     <string name="five_hour">Five-hour limit</string>
     <string name="weekly">Weekly limit</string>

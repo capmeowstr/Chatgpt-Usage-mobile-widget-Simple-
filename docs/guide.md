@@ -2,13 +2,13 @@
 
 ## Quick start
 
-Download the [v1.3 APK](../downloads/ChatGPT_Work_Usage_v1_3.apk?raw=true), open it on Android, and follow the install prompt. Existing v1.2 users can update in place. Open **Work Usage** after installation.
+Download the [v1.4 APK](../downloads/ChatGPT_Work_Usage_v1_4.apk?raw=true), open it on Android, and follow the install prompt. Existing users can update in place. Open **Work Usage** after installation.
 
 ### Enter values manually
 
 1. Open the [ChatGPT usage dashboard](https://chatgpt.com/settings/usage) and find the limits you want to display.
 2. In **Work Usage**, tap **Enter dashboard values**. Enter the percentages left and earned reset count. Leave any unavailable value blank.
-3. Tap **Save**, then **Add to home screen**. Confirm in your launcher. You can also add the widget from the Android widget picker.
+3. Tap **Save**, then [add a widget](#add-a-widget).
 4. Update your numbers by tapping **Enter dashboard values** again. The widget shows the time of the last manual entry.
 
 ### Connect live sync
@@ -23,9 +23,17 @@ Live sync uses the [Codex device-code sign-in flow](https://learn.chatgpt.com/do
 
 Tap the refresh icon to request an update. Android schedules background refreshes at roughly 15-minute intervals while a widget is pinned and the app is connected. The phone can defer those updates to save power.
 
+## Add a widget
+
+1. In Work Usage, tap **Add to home screen**.
+2. Choose **Full (4 × 2)** for both limits and reset details, **Five-hour (2 × 1)** for the short limit, or **Weekly (2 × 1)** for the weekly limit.
+3. Confirm in your launcher. If your launcher uses its own widget picker, touch and hold your home screen, open **Widgets**, and look for Work Usage.
+
+You can pin any combination of the three widgets. The compact widgets share saved values and live updates with the full widget.
+
 ## Change the widget style
 
-Open **Widget style** in Work Usage. Tap **Dark**, **Light**, or **OLED** to preview it with sample data. Tap **Apply** to update every pinned Work Usage widget. Your choice is saved on your phone.
+Open **Widget style** in Work Usage. Tap **Dark**, **Light**, or **OLED** to preview the full and compact widgets with sample data. Tap **Apply** to update every pinned Work Usage widget. Your choice is saved on your phone.
 
 ## Build from source
 

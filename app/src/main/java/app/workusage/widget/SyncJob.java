@@ -4,7 +4,6 @@ import android.app.job.JobInfo;
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
 import android.app.job.JobService;
-import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Build;
@@ -20,8 +19,7 @@ public final class SyncJob extends JobService {
 
     static void schedulePeriodic(Context context) {
         JobScheduler scheduler = context.getSystemService(JobScheduler.class);
-        int[] widgets = AppWidgetManager.getInstance(context).getAppWidgetIds(UsageWidget.component(context));
-        if (widgets.length == 0 || !UsageRepository.get(context).connected()
+        if (!UsageWidget.hasWidgets(context) || !UsageRepository.get(context).connected()
                 || scheduler.getPendingJob(PERIODIC_JOB) != null) {
             return;
         }
