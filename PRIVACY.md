@@ -2,7 +2,7 @@
 
 ## Data on your phone
 
-The app saves the displayed allowances, reset times, earned reset count, and last-updated time in private app storage. Manual entry saves a snapshot locally and works independently of sign-in.
+The app saves the displayed allowances, reset times, earned reset count, last-updated time, and widget style in private app storage. Manual entry saves a snapshot locally and works independently of sign-in.
 
 Live sync uses a Codex session. The app saves its access and refresh credentials encrypted with an Android Keystore key. Account credentials are broader than the usage counters shown by the widget. Enter one-time codes only on OpenAI’s sign-in page when you started the request yourself.
 

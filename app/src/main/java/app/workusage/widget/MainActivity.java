@@ -25,8 +25,11 @@ import android.view.WindowInsets;
 import android.widget.ImageView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -149,6 +152,10 @@ public final class MainActivity extends Activity {
         TextView pin = button("Add to home screen", false);
         pin.setOnClickListener(v -> addWidget());
         add(content, pin, 8);
+
+        TextView style = button(getString(R.string.widget_style), false);
+        style.setOnClickListener(v -> showWidgetStyles());
+        add(content, style, 8);
 
         TextView dashboard = link("Open usage dashboard", () -> openBrowser(CodexClient.DASHBOARD));
         add(content, dashboard, 5);
@@ -413,6 +420,57 @@ public final class MainActivity extends Activity {
                         + "and drag it onto your home screen.")
                 .setPositiveButton("OK", null)
                 .show();
+    }
+
+    private void showWidgetStyles() {
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout content = panel();
+        content.setPadding(dp(22), dp(12), dp(22), dp(8));
+        scroll.addView(content);
+
+        FrameLayout preview = new FrameLayout(this);
+        content.addView(preview, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(158)));
+        RadioGroup styles = new RadioGroup(this);
+        styles.setOrientation(RadioGroup.VERTICAL);
+        add(content, styles, 12);
+
+        WidgetAppearance current = WidgetAppearance.load(this);
+        for (WidgetAppearance appearance : WidgetAppearance.values()) {
+            RadioButton option = new RadioButton(this);
+            option.setId(View.generateViewId());
+            option.setText(appearance.label);
+            option.setTag(appearance);
+            option.setMinHeight(dp(48));
+            styles.addView(option);
+            if (appearance == current) {
+                styles.check(option.getId());
+            }
+        }
+        renderWidgetPreview(preview, current);
+        styles.setOnCheckedChangeListener((group, id) -> {
+            RadioButton option = group.findViewById(id);
+            if (option != null) {
+                renderWidgetPreview(preview, (WidgetAppearance) option.getTag());
+            }
+        });
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.widget_style)
+                .setView(scroll)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton("Apply", (dialog, which) -> {
+                    RadioButton option = styles.findViewById(styles.getCheckedRadioButtonId());
+                    ((WidgetAppearance) option.getTag()).save(this);
+                })
+                .show();
+    }
+
+    private void renderWidgetPreview(FrameLayout preview, WidgetAppearance appearance) {
+        preview.removeAllViews();
+        preview.addView(UsageWidget.preview(this, appearance).apply(this, preview),
+                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     private boolean openBrowser(String address) {

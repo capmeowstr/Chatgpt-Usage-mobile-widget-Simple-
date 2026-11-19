@@ -56,18 +56,11 @@ public final class UsageWidget extends AppWidgetProvider {
         }
     }
 
-    static RemoteViews remoteViews(Context context) {
+    private static RemoteViews remoteViews(Context context) {
         UsageRepository repository = UsageRepository.get(context);
         UsageSnapshot snapshot = repository.snapshot();
         long now = System.currentTimeMillis();
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.usage_widget);
-
-        bindWindow(context, views, snapshot == null ? null : snapshot.fiveHours,
-                R.id.widget_short_percent, R.id.widget_short_bar, R.id.widget_short_reset, now);
-        bindWindow(context, views, snapshot == null ? null : snapshot.week,
-                R.id.widget_week_percent, R.id.widget_week_bar, R.id.widget_week_reset, now);
-        views.setTextViewText(R.id.widget_credits, "Resets left: "
-                + (snapshot == null || snapshot.earnedResets == null ? "—" : snapshot.earnedResets));
+        RemoteViews views = display(context, WidgetAppearance.load(context), snapshot, now);
         views.setTextViewText(R.id.widget_sync, footer(context, repository, snapshot, now));
 
         Intent appIntent = new Intent(context, MainActivity.class)
@@ -80,7 +73,31 @@ public final class UsageWidget extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_footer, openApp);
         views.setOnClickPendingIntent(R.id.widget_refresh, repository.connected() ? refresh : openApp);
         views.setContentDescription(R.id.widget_refresh,
-                repository.connected() ? "Refresh usage" : "Connect to ChatGPT");
+                context.getString(repository.connected() ? R.string.refresh_usage : R.string.open_work_usage));
+        return views;
+    }
+
+    static RemoteViews preview(Context context, WidgetAppearance appearance) {
+        long now = System.currentTimeMillis();
+        UsageSnapshot sample = new UsageSnapshot(
+                new UsageSnapshot.Window(72, now + 2 * 60 * 60_000L),
+                new UsageSnapshot.Window(38, now + 3 * 24 * 60 * 60_000L), 2, now);
+        RemoteViews views = display(context, appearance, sample, now);
+        views.setTextViewText(R.id.widget_sync, context.getString(R.string.widget_style_sample));
+        views.setContentDescription(R.id.widget_refresh, null);
+        return views;
+    }
+
+    private static RemoteViews display(Context context, WidgetAppearance appearance,
+                                       UsageSnapshot snapshot, long now) {
+        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.usage_widget);
+        appearance.apply(views);
+        bindWindow(context, views, snapshot == null ? null : snapshot.fiveHours,
+                R.id.widget_short_percent, R.id.widget_short_bar, R.id.widget_short_reset, now);
+        bindWindow(context, views, snapshot == null ? null : snapshot.week,
+                R.id.widget_week_percent, R.id.widget_week_bar, R.id.widget_week_reset, now);
+        views.setTextViewText(R.id.widget_credits, "Resets left: "
+                + (snapshot == null || snapshot.earnedResets == null ? "—" : snapshot.earnedResets));
         return views;
     }
 
@@ -90,11 +107,10 @@ public final class UsageWidget extends AppWidgetProvider {
         String percent = showValue ? window.percent(now) + " left" : "—";
         String resetText = window == null ? "—" : window.detail(context, now, true);
         views.setTextViewText(value, percent);
-        views.setProgressBar(bar, 100, showValue ? window.progress(now) : 0, false);
+        views.setInt(bar, "setImageLevel", showValue ? window.progress(now) * 100 : 0);
         views.setTextViewText(reset, resetText);
-        if (showValue && window.resetsAt > 0) {
-            views.setContentDescription(reset, window.detail(context, now, false));
-        }
+        views.setContentDescription(reset, showValue && window.resetsAt > 0
+                ? window.detail(context, now, false) : null);
     }
 
     private static String footer(Context context, UsageRepository repository, UsageSnapshot snapshot,

@@ -30,6 +30,7 @@
                 android:src="@drawable/ic_launcher" />
 
             <TextView
+                android:id="@+id/widget_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -67,21 +68,31 @@
             android:orientation="vertical"
             android:padding="8dp">
 
-            <TextView style="@style/WidgetLimitLabel" android:text="@string/five_hour" />
+            <TextView
+                android:id="@+id/widget_short_label"
+                style="@style/WidgetLimitLabel"
+                android:text="@string/five_hour" />
             <TextView
                 android:id="@+id/widget_short_percent"
                 style="@style/WidgetPercent"
                 android:textColor="@color/mint" />
-            <ProgressBar
-                android:id="@+id/widget_short_bar"
-                style="?android:attr/progressBarStyleHorizontal"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="4dp"
                 android:layout_marginTop="3dp"
-                android:importantForAccessibility="no"
-                android:max="100"
-                android:minHeight="4dp"
-                android:progressDrawable="@drawable/bar_mint" />
+                android:importantForAccessibility="noHideDescendants">
+
+                <ImageView
+                    android:id="@+id/widget_short_track"
+                    style="@style/WidgetBarLayer"
+                    android:src="@drawable/widget_bar_track"
+                    android:tint="@color/track" />
+                <ImageView
+                    android:id="@+id/widget_short_bar"
+                    style="@style/WidgetBarLayer"
+                    android:src="@drawable/widget_bar_fill"
+                    android:tint="@color/mint" />
+            </FrameLayout>
             <TextView
                 android:id="@+id/widget_short_reset"
                 style="@style/WidgetLimitDetail"
@@ -98,21 +109,31 @@
             android:orientation="vertical"
             android:padding="8dp">
 
-            <TextView style="@style/WidgetLimitLabel" android:text="@string/weekly" />
+            <TextView
+                android:id="@+id/widget_week_label"
+                style="@style/WidgetLimitLabel"
+                android:text="@string/weekly" />
             <TextView
                 android:id="@+id/widget_week_percent"
                 style="@style/WidgetPercent"
                 android:textColor="@color/blue" />
-            <ProgressBar
-                android:id="@+id/widget_week_bar"
-                style="?android:attr/progressBarStyleHorizontal"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="4dp"
                 android:layout_marginTop="3dp"
-                android:importantForAccessibility="no"
-                android:max="100"
-                android:minHeight="4dp"
-                android:progressDrawable="@drawable/bar_blue" />
+                android:importantForAccessibility="noHideDescendants">
+
+                <ImageView
+                    android:id="@+id/widget_week_track"
+                    style="@style/WidgetBarLayer"
+                    android:src="@drawable/widget_bar_track"
+                    android:tint="@color/track" />
+                <ImageView
+                    android:id="@+id/widget_week_bar"
+                    style="@style/WidgetBarLayer"
+                    android:src="@drawable/widget_bar_fill"
+                    android:tint="@color/blue" />
+            </FrameLayout>
             <TextView
                 android:id="@+id/widget_week_reset"
                 style="@style/WidgetLimitDetail"

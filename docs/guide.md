@@ -2,7 +2,7 @@
 
 ## Quick start
 
-Download the [v1.2 APK](../downloads/ChatGPT_Work_Usage_v1_2.apk?raw=true), open it on Android, and follow the install prompt. Open **Work Usage** after installation.
+Download the [v1.3 APK](../downloads/ChatGPT_Work_Usage_v1_3.apk?raw=true), open it on Android, and follow the install prompt. Existing v1.2 users can update in place. Open **Work Usage** after installation.
 
 ### Enter values manually
 
@@ -22,6 +22,10 @@ Live sync uses the [Codex device-code sign-in flow](https://learn.chatgpt.com/do
 5. Compare the widget’s values and reset times with the official usage dashboard. Check the last-sync time when the numbers differ.
 
 Tap the refresh icon to request an update. Android schedules background refreshes at roughly 15-minute intervals while a widget is pinned and the app is connected. The phone can defer those updates to save power.
+
+## Change the widget style
+
+Open **Widget style** in Work Usage. Tap **Dark**, **Light**, or **OLED** to preview it with sample data. Tap **Apply** to update every pinned Work Usage widget. Your choice is saved on your phone.
 
 ## Build from source
 

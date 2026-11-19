@@ -1,31 +1,19 @@
 # Work Usage Widget
 
-**See your ChatGPT Work and Codex limits on your Android home screen.** Check your remaining allowance, reset times and earned resets in a glance.
+See your five-hour and weekly ChatGPT Work and Codex allowances, reset times, and earned resets on your Android home screen.
 
-[**Download APK v1.2**](downloads/ChatGPT_Work_Usage_v1_2.apk?raw=true) · [Setup guide](docs/guide.md#quick-start) · [Release notes](docs/release-notes-v1.2.md) · [SHA-256 checksum](downloads/SHA256SUMS)
+**[Download v1.3 APK](downloads/ChatGPT_Work_Usage_v1_3.apk?raw=true)** · Android 8.0+ · [SHA-256](downloads/SHA256SUMS)
 
-Android 8.0+ · Unofficial
+![Illustrated preview of Dark, Light and OLED widgets with sample five-hour and weekly allowances](docs/images/widget-styles-v1.3.webp)
 
-[![Animated walkthrough showing the usage dashboard, the Add to home screen button, and the Android widget](docs/images/widget-walkthrough.gif)](docs/images/widget-walkthrough.gif)
+## Get started
 
-*The walkthrough and screenshots use sample values.*
+1. **Install.** Open the APK on Android. If you have v1.2, install v1.3 over it to keep your saved data and pinned widget.
+2. **Add your usage.** Choose **Connect with a device code** for live sync or **Enter dashboard values** for manual entry.
+3. **Pin and style it.** Tap **Add to home screen**. Open **Widget style** to preview Dark, Light, or OLED and apply it to your pinned widgets.
 
-## Features
+Tap the widget’s refresh icon to request a new check when connected. The footer shows when usage was last synced or entered.
 
-- **Usage at a glance.** See the five-hour and weekly allowances, reset times and earned resets.
-- **Live sync or manual entry.** Connect with a device code or enter a snapshot from your dashboard.
-- **Home-screen access.** Pin the widget and tap refresh for a new check when connected.
+[Full setup guide](docs/guide.md) · [What’s new in v1.3](docs/release-notes-v1.3.md) · [Build from source](docs/guide.md#build-from-source) · [Privacy](PRIVACY.md)
 
-## Quick start
-
-1. Install the APK and open **Work Usage**.
-2. Tap **Connect with a device code** for live sync or **Enter dashboard values** to enter a snapshot.
-3. Tap **Add to home screen**, then confirm in your launcher.
-
-| App dashboard | Home-screen widget |
-| :---: | :---: |
-| <img src="docs/images/dashboard-demo.png" alt="Work Usage dashboard showing five-hour and weekly allowance, earned resets, and setup controls" width="224"> | <img src="docs/images/widget-demo.png" alt="Home-screen widget showing five-hour and weekly allowance and remaining earned resets" width="336"> |
-
-[Build from source](docs/guide.md#build-from-source) · [Privacy](PRIVACY.md)
-
-This is an independent project. OpenAI does not sponsor or endorse it.
+An independent Android app. Live sync uses Codex sign-in and depends on ChatGPT’s usage endpoints.
