@@ -27,8 +27,27 @@
     <string name="widget_style_dark">Dark</string>
     <string name="widget_style_light">Light</string>
     <string name="widget_style_oled">OLED</string>
+    <string name="widget_style_ocean">Ocean</string>
+    <string name="widget_style_sunset">Sunset</string>
     <string name="widget_style_sample">Sample data</string>
     <string name="open_work_usage">Open Work Usage</string>
+    <string name="usage_alerts">Usage alerts</string>
+    <string name="usage_alerts_threshold">Usage alerts · %1$d%%</string>
+    <string name="usage_alert_message">%1$s of this allowance remaining.</string>
+    <string name="usage_alert_settings">Notification settings</string>
+    <string name="usage_alert_description">Get an alert after a successful sync when either allowance reaches this level. For background checks, connect and pin a widget.</string>
+    <string name="usage_alert_blocked">Allow notifications in Android settings to receive usage alerts.</string>
+    <string name="usage_alert_level">%1$d%% remaining</string>
+    <string name="usage_alert_off">Off</string>
+    <string name="history_button">History</string>
+    <string name="history_title">Usage history</string>
+    <string name="history_empty">Your readings appear here after a successful sync or manual entry.</string>
+    <string name="history_now">Now</string>
+    <string name="history_clear">Clear history</string>
+    <string name="history_clear_confirm">Delete the usage readings saved on this phone?</string>
+    <string name="history_details">Last 7 days on this phone. Each point is a saved reading.</string>
+    <string name="history_latest">Latest saved reading. Five-hour %1$s. Weekly %2$s.</string>
+    <string name="dashboard_reset_eta">%1$s · in %2$s</string>
 
     <color name="background">#10151C</color>
     <color name="surface">#192129</color>

@@ -10,7 +10,11 @@ enum WidgetAppearance {
     LIGHT(R.string.widget_style_light, R.drawable.widget_bg_light, R.drawable.widget_panel_light,
             0xFF182A27, 0xFF3D5753, 0xFF08664C, 0xFF254994, 0xFFC7D6D4),
     OLED(R.string.widget_style_oled, R.drawable.widget_bg_oled, R.drawable.widget_panel_oled,
-            0xFFF5F5F5, 0xFFC6C9CD, 0xFFBFFF70, 0xFFFFD27A, 0xFF35383C);
+            0xFFF5F5F5, 0xFFC6C9CD, 0xFFBFFF70, 0xFFFFD27A, 0xFF35383C),
+    OCEAN(R.string.widget_style_ocean, R.drawable.widget_bg_ocean, R.drawable.widget_panel_ocean,
+            0xFFEAF8FF, 0xFFAFD0E1, 0xFF6CF5EB, 0xFFA4BEFF, 0xFF335264),
+    SUNSET(R.string.widget_style_sunset, R.drawable.widget_bg_sunset, R.drawable.widget_panel_sunset,
+            0xFFFFF1E4, 0xFFE1BEBB, 0xFFFFC184, 0xFFFFA6CE, 0xFF694650);
 
     private static final String STYLE = "style";
 

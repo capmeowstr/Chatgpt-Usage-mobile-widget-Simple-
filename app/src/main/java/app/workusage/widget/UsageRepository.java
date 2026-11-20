@@ -288,6 +288,8 @@ final class UsageRepository {
                 updated.remove(CACHE);
             }
             updated.commit();
+            UsageHistory.clearSynced(context);
+            UsageAlerts.clearPending(context);
             lastAttempt = 0;
             SyncJob.schedulePeriodic(context);
             refreshNow(true);
@@ -323,6 +325,8 @@ final class UsageRepository {
         worker.execute(() -> {
             vault.clear();
             state.edit().remove(CACHE).remove(ERROR).commit();
+            UsageHistory.clear(context);
+            UsageAlerts.clearPending(context);
             lastAttempt = 0;
             SyncJob.cancel(context);
             changed();
@@ -334,7 +338,9 @@ final class UsageRepository {
             try {
                 UsageSnapshot manual = UsageSnapshot.manual(fiveHours, week, resets,
                         System.currentTimeMillis());
-                state.edit().putString(CACHE, manual.toJson().toString()).remove(ERROR).commit();
+                if (state.edit().putString(CACHE, manual.toJson().toString()).remove(ERROR).commit()) {
+                    UsageHistory.record(context, manual);
+                }
             } catch (JSONException e) {
                 setError("Couldn’t save the entered usage.");
             }
@@ -390,7 +396,10 @@ final class UsageRepository {
                 }
                 updated = client.getSnapshot(renew(session));
             }
-            state.edit().putString(CACHE, updated.toJson().toString()).remove(ERROR).commit();
+            if (state.edit().putString(CACHE, updated.toJson().toString()).remove(ERROR).commit()) {
+                UsageHistory.record(context, updated);
+                UsageAlerts.check(context, updated);
+            }
         } catch (SessionExpired | GeneralSecurityException e) {
             requireSignIn();
         } catch (CodexClient.HttpFailure e) {
@@ -431,6 +440,7 @@ final class UsageRepository {
     private void requireSignIn() {
         vault.clear();
         SyncJob.cancel(context);
+        UsageAlerts.clearPending(context);
         setError("Your ChatGPT session ended. Connect again to refresh.");
     }
 

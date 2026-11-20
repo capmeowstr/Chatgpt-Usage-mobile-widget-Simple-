@@ -2,7 +2,7 @@
 
 ## Quick start
 
-Download the [v1.4 APK](../downloads/ChatGPT_Work_Usage_v1_4.apk?raw=true), open it on Android, and follow the install prompt. Existing users can update in place. Open **Work Usage** after installation.
+Download the [v1.5 APK](../downloads/ChatGPT_Work_Usage_v1_5.apk?raw=true), open it on Android, and follow the install prompt. Existing users can update in place. Open **Work Usage** after installation.
 
 ### Enter values manually
 
@@ -33,7 +33,14 @@ You can pin any combination of the three widgets. The compact widgets share save
 
 ## Change the widget style
 
-Open **Widget style** in Work Usage. Tap **Dark**, **Light**, or **OLED** to preview the full and compact widgets with sample data. Tap **Apply** to update every pinned Work Usage widget. Your choice is saved on your phone.
+Open **Widget style** in Work Usage. Tap **Dark**, **Light**, **OLED**, **Ocean**, or **Sunset** to preview the full and compact widgets with sample data. Tap **Apply** to update every pinned Work Usage widget. Your choice is saved on your phone.
+
+## History and alerts
+
+- **History** shows up to seven days of local readings from successful syncs and manual entries. It keeps the most recent reading in each 15-minute period and starts collecting after you install v1.5. Tap **Clear history** to delete those readings.
+- **Usage alerts** are off by default. Choose 10%, 20%, or 30% remaining and allow notifications if Android asks. Alerts are evaluated after a successful live sync. For background checks, keep the app connected and pin a widget. Android can delay background checks.
+- Each limit can alert again after your remaining allowance goes above your threshold or a known reset passes. Manual entries are included in history and live sync supplies the alert readings.
+- The app dashboard shows your local reset time and a countdown for each limit with a known upcoming reset.
 
 ## Build from source
 

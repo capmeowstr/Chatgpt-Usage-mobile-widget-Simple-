@@ -112,6 +112,10 @@ final class UsageSnapshot {
         }
     }
 
+    static String percentage(double remaining) {
+        return remaining > 0 && remaining < 1 ? "<1%" : (int) Math.floor(remaining) + "%";
+    }
+
     static String timeLabel(Context context, long when, long now, boolean compact) {
         Calendar date = Calendar.getInstance();
         date.setTimeInMillis(when);
@@ -144,10 +148,7 @@ final class UsageSnapshot {
             if (expired(now)) {
                 return "—";
             }
-            if (remaining > 0 && remaining < 1) {
-                return "<1%";
-            }
-            return (int) Math.floor(remaining) + "%";
+            return percentage(remaining);
         }
 
         int progress(long now) {
@@ -163,6 +164,18 @@ final class UsageSnapshot {
             }
             String time = timeLabel(context, resetsAt, now, compact);
             return compact ? "↻ " + time : "Resets " + time;
+        }
+
+        String timeToReset(long now) {
+            if (resetsAt <= now) {
+                return "";
+            }
+            long minutes = (resetsAt - now - 1) / 60_000 + 1;
+            long hours = minutes / 60;
+            if (hours >= 24) {
+                return (hours / 24) + "d " + (hours % 24) + "h";
+            }
+            return hours == 0 ? minutes + "m" : hours + "h " + (minutes % 60) + "m";
         }
 
         private JSONObject toJson() throws JSONException {

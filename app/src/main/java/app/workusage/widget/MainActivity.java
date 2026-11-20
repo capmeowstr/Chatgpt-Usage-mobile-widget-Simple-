@@ -8,6 +8,7 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Insets;
 import android.graphics.Typeface;
@@ -16,7 +17,10 @@ import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PersistableBundle;
+import android.provider.Settings;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -34,9 +38,21 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.List;
+
 public final class MainActivity extends Activity {
+    private static final int ALERT_PERMISSION = 160;
+    private static final int[] ALERT_LEVELS = {0, 10, 20, 30};
     private UsageRepository repository;
     private final Runnable updateScreen = this::render;
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final Runnable updateResetTimes = new Runnable() {
+        @Override
+        public void run() {
+            renderLimits(repository.snapshot(), System.currentTimeMillis());
+            main.postDelayed(this, 30_000);
+        }
+    };
     private TextView status;
     private TextView resetCount;
     private TextView primary;
@@ -45,6 +61,7 @@ public final class MainActivity extends Activity {
     private TextView browserSignIn;
     private TextView deviceSettings;
     private TextView enterDashboardValues;
+    private TextView alerts;
     private LimitViews fiveHourCard;
     private LimitViews weekCard;
 
@@ -72,11 +89,13 @@ public final class MainActivity extends Activity {
         super.onResume();
         repository.setSignInVisible(true);
         render();
+        main.postDelayed(updateResetTimes, 30_000);
     }
 
     @Override
     protected void onPause() {
         repository.setSignInVisible(false);
+        main.removeCallbacks(updateResetTimes);
         super.onPause();
     }
 
@@ -157,6 +176,18 @@ public final class MainActivity extends Activity {
         style.setOnClickListener(v -> showWidgetStyles());
         add(content, style, 8);
 
+        LinearLayout tools = row();
+        TextView history = button(getString(R.string.history_button), false);
+        history.setOnClickListener(v -> showUsageHistory());
+        LinearLayout.LayoutParams firstTool = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        firstTool.setMarginEnd(dp(8));
+        tools.addView(history, firstTool);
+        alerts = button(getString(R.string.usage_alerts), false);
+        alerts.setOnClickListener(v -> showUsageAlerts());
+        tools.addView(alerts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        add(content, tools, 8);
+
         TextView dashboard = link("Open usage dashboard", () -> openBrowser(CodexClient.DASHBOARD));
         add(content, dashboard, 5);
         browserSignIn = link("Use browser sign-in", this::startBrowserSignIn);
@@ -201,14 +232,16 @@ public final class MainActivity extends Activity {
     private void render() {
         UsageSnapshot snapshot = repository.snapshot();
         long now = System.currentTimeMillis();
-        fiveHourCard.render(snapshot == null ? null : snapshot.fiveHours, snapshot != null, now);
-        weekCard.render(snapshot == null ? null : snapshot.week, snapshot != null, now);
+        renderLimits(snapshot, now);
         resetCount.setText(snapshot == null || snapshot.earnedResets == null
                 ? "—" : String.valueOf(snapshot.earnedResets));
         resetCount.setContentDescription(snapshot == null || snapshot.earnedResets == null
                 ? "Earned reset count unavailable" : snapshot.earnedResets + " earned resets left");
         status.setText(statusText(snapshot, now));
         status.setTextColor(color(repository.error() == null ? R.color.muted : R.color.alert));
+        int threshold = UsageAlerts.threshold(this);
+        alerts.setText(threshold == 0 ? getString(R.string.usage_alerts)
+                : getString(R.string.usage_alerts_threshold, threshold));
 
         boolean signingIn = repository.signingIn();
         boolean connected = repository.connected();
@@ -239,6 +272,11 @@ public final class MainActivity extends Activity {
         secondaryAccount.setVisibility(signingIn || connected ? View.VISIBLE : View.GONE);
         primary.setEnabled(!repository.exchanging() && !repository.syncing() && (!usingCode || code != null));
         primary.setAlpha(primary.isEnabled() ? 1f : 0.67f);
+    }
+
+    private void renderLimits(UsageSnapshot snapshot, long now) {
+        fiveHourCard.render(snapshot == null ? null : snapshot.fiveHours, snapshot != null, now);
+        weekCard.render(snapshot == null ? null : snapshot.week, snapshot != null, now);
     }
 
     private String statusText(UsageSnapshot snapshot, long now) {
@@ -402,7 +440,7 @@ public final class MainActivity extends Activity {
         }
         new AlertDialog.Builder(this)
                 .setTitle("Disconnect ChatGPT?")
-                .setMessage("Your saved usage will be cleared from this phone.")
+                .setMessage("Your saved usage and history will be cleared from this phone.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Disconnect", (dialog, which) -> repository.disconnect())
                 .show();
@@ -436,6 +474,112 @@ public final class MainActivity extends Activity {
                 .setMessage(R.string.widget_pin_fallback)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+    }
+
+    private void showUsageHistory() {
+        long now = System.currentTimeMillis();
+        List<UsageHistory.Point> points = UsageHistory.recent(this, now);
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.history_title)
+                .setPositiveButton(android.R.string.ok, null);
+        if (points.isEmpty()) {
+            dialog.setMessage(R.string.history_empty).show();
+            return;
+        }
+
+        LinearLayout content = panel();
+        content.setPadding(dp(22), dp(8), dp(22), dp(6));
+        TextView caption = text(getString(R.string.history_details), 13, color(R.color.muted), "sans-serif");
+        add(content, caption, 0);
+        content.addView(new UsageHistoryChart(this, points, now),
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(161)));
+        UsageHistory.Point latest = points.get(points.size() - 1);
+        TextView summary = text(getString(R.string.history_latest,
+                historyPercent(latest.fiveHours), historyPercent(latest.week)),
+                13, color(R.color.on_surface), "sans-serif");
+        add(content, summary, 4);
+        LinearLayout key = row();
+        key.addView(text("● Five-hour", 12, color(R.color.mint), "sans-serif-medium"),
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        key.addView(text("● Weekly", 12, color(R.color.blue), "sans-serif-medium"),
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        add(content, key, 10);
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(content);
+        dialog.setView(scroll)
+                .setNeutralButton(R.string.history_clear, (view, which) -> new AlertDialog.Builder(this)
+                        .setTitle(R.string.history_clear)
+                        .setMessage(R.string.history_clear_confirm)
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(R.string.history_clear, (confirm, action) -> UsageHistory.clear(this))
+                        .show())
+                .show();
+    }
+
+    private String historyPercent(Double percent) {
+        return percent == null ? getString(R.string.unknown) : UsageSnapshot.percentage(percent);
+    }
+
+    private void showUsageAlerts() {
+        int current = UsageAlerts.threshold(this);
+        CharSequence[] labels = new CharSequence[ALERT_LEVELS.length];
+        int selected = 0;
+        for (int i = 0; i < ALERT_LEVELS.length; i++) {
+            int level = ALERT_LEVELS[i];
+            labels[i] = level == 0 ? getText(R.string.usage_alert_off)
+                    : getString(R.string.usage_alert_level, level);
+            if (level == current) {
+                selected = i;
+            }
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.usage_alerts)
+                .setSingleChoiceItems(labels, selected, null)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setNeutralButton(R.string.usage_alert_settings, (dialog, which) -> startActivity(
+                        new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName())))
+                .setPositiveButton("Apply", (dialog, which) -> {
+                    int item = ((AlertDialog) dialog).getListView().getCheckedItemPosition();
+                    if (item >= 0) {
+                        saveAlertLevel(ALERT_LEVELS[item]);
+                    }
+                })
+                .setView(usageAlertExplanation(current))
+                .show();
+    }
+
+    private TextView usageAlertExplanation(int threshold) {
+        String message = getString(R.string.usage_alert_description);
+        if (threshold > 0 && !UsageAlerts.allowed(this)) {
+            message += "\n\n" + getString(R.string.usage_alert_blocked);
+        }
+        TextView explanation = text(message, 13, color(R.color.muted), "sans-serif");
+        explanation.setPadding(dp(24), dp(16), dp(24), dp(4));
+        return explanation;
+    }
+
+    private void saveAlertLevel(int level) {
+        UsageAlerts.saveThreshold(this, level);
+        render();
+        if (level == 0) {
+            return;
+        }
+        if (UsageAlerts.needsPermission(this)) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, ALERT_PERMISSION);
+        } else if (UsageAlerts.allowed(this) && repository.connected()) {
+            repository.refresh(true, null);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == ALERT_PERMISSION && grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED && repository.connected()) {
+            repository.refresh(true, null);
+        }
     }
 
     private void showWidgetStyles() {
@@ -616,7 +760,9 @@ public final class MainActivity extends Activity {
             boolean showValue = window != null && !window.expired(now);
             value.setText(showValue ? window.percent(now) + " left" : "—");
             if (window != null) {
-                detail.setText(window.detail(MainActivity.this, now, false));
+                String resetTime = window.detail(MainActivity.this, now, false);
+                String eta = window.timeToReset(now);
+                detail.setText(eta.isEmpty() ? resetTime : getString(R.string.dashboard_reset_eta, resetTime, eta));
             } else {
                 detail.setText(hasSnapshot ? "Limit unavailable" : "Awaiting usage data");
             }
