@@ -164,6 +164,10 @@ public final class MainActivity extends Activity {
         resetRow.addView(resetCount, wrap());
         add(content, resetRow, 9);
 
+        TextView planner = button(getString(R.string.session_open), false);
+        planner.setOnClickListener(view -> startActivity(new Intent(this, SessionPlannerActivity.class)));
+        add(content, planner, 10);
+
         primary = button("Connect with a device code", true);
         primary.setOnClickListener(v -> accountAction());
         add(content, primary, 18);
@@ -599,6 +603,10 @@ public final class MainActivity extends Activity {
         compact.addView(fiveHourPreview, firstPreview);
         compact.addView(weeklyPreview, new LinearLayout.LayoutParams(0, dp(52), 1f));
         add(content, compact, 8);
+        FrameLayout sessionPreview = new FrameLayout(this);
+        LinearLayout.LayoutParams sessionParams = new LinearLayout.LayoutParams(dp(146), dp(52));
+        sessionParams.topMargin = dp(8);
+        content.addView(sessionPreview, sessionParams);
 
         RadioGroup styles = new RadioGroup(this);
         styles.setOrientation(RadioGroup.VERTICAL);
@@ -616,11 +624,11 @@ public final class MainActivity extends Activity {
                 styles.check(option.getId());
             }
         }
-        renderWidgetPreviews(preview, fiveHourPreview, weeklyPreview, current);
+        renderWidgetPreviews(preview, fiveHourPreview, weeklyPreview, sessionPreview, current);
         styles.setOnCheckedChangeListener((group, id) -> {
             RadioButton option = group.findViewById(id);
             if (option != null) {
-                renderWidgetPreviews(preview, fiveHourPreview, weeklyPreview,
+                renderWidgetPreviews(preview, fiveHourPreview, weeklyPreview, sessionPreview,
                         (WidgetAppearance) option.getTag());
             }
         });
@@ -637,10 +645,11 @@ public final class MainActivity extends Activity {
     }
 
     private void renderWidgetPreviews(FrameLayout full, FrameLayout fiveHour, FrameLayout weekly,
-                                      WidgetAppearance appearance) {
+                                      FrameLayout session, WidgetAppearance appearance) {
         renderWidgetPreview(full, appearance, UsageWidget.Variant.FULL);
         renderWidgetPreview(fiveHour, appearance, UsageWidget.Variant.FIVE_HOUR);
         renderWidgetPreview(weekly, appearance, UsageWidget.Variant.WEEKLY);
+        renderWidgetPreview(session, appearance, UsageWidget.Variant.SESSION);
     }
 
     private void renderWidgetPreview(FrameLayout preview, WidgetAppearance appearance,

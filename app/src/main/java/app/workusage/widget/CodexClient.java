@@ -175,7 +175,7 @@ final class CodexClient {
             connection.setReadTimeout(session == null ? AUTH_READ_TIMEOUT_MS : USAGE_READ_TIMEOUT_MS);
             connection.setUseCaches(false);
             connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("User-Agent", "WorkUsage/1.5 (Android)");
+            connection.setRequestProperty("User-Agent", "WorkUsage/1.6 (Android)");
             if (session != null) {
                 connection.setRequestProperty("originator", APP_ID);
                 connection.setRequestProperty("Authorization", "Bearer " + session.accessToken);

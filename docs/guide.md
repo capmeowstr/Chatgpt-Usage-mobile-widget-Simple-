@@ -2,7 +2,7 @@
 
 ## Quick start
 
-Download the [v1.5 APK](../downloads/ChatGPT_Work_Usage_v1_5.apk?raw=true), open it on Android, and follow the install prompt. Existing users can update in place. Open **Work Usage** after installation.
+Download the [v1.6 APK](../downloads/ChatGPT_Work_Usage_v1_6.apk?raw=true), open it on Android, and follow the install prompt. Existing users can update in place. Open **Work Usage** after installation.
 
 ### Enter values manually
 
@@ -26,14 +26,24 @@ Tap the refresh icon to request an update. Android schedules background refreshe
 ## Add a widget
 
 1. In Work Usage, tap **Add to home screen**.
-2. Choose **Full (4 × 2)** for both limits and reset details, **Five-hour (2 × 1)** for the short limit, or **Weekly (2 × 1)** for the weekly limit.
+2. Choose **Full (4 × 2)** for both limits and reset details, **Five-hour (2 × 1)** for the short limit, **Weekly (2 × 1)** for the weekly limit, or **Next session (2 × 1)** for the lower reported allowance and a planner shortcut.
 3. Confirm in your launcher. If your launcher uses its own widget picker, touch and hold your home screen, open **Widgets**, and look for Work Usage.
 
-You can pin any combination of the three widgets. The compact widgets share saved values and live updates with the full widget.
+You can pin any combination of the four widgets. The compact widgets share saved values and live updates with the full widget.
 
 ## Change the widget style
 
 Open **Widget style** in Work Usage. Tap **Dark**, **Light**, **OLED**, **Ocean**, or **Sunset** to preview the full and compact widgets with sample data. Tap **Apply** to update every pinned Work Usage widget. Your choice is saved on your phone.
+
+## Plan a session
+
+Open **Plan a session** from the dashboard or tap the **Next session** widget.
+
+- Choose a 30-, 60-, 90-, or 120-minute block and select a 10%, 20%, or 30% reserve. Work Usage saves these choices on your phone.
+- Use **Now** or **At next reset**. The timeline marks a reset inside the selected block or at its boundary. A later reset appears as a time beneath its track.
+- The reserve margin is reported in percentage points. For example, 12% left against a 20% reserve is 8 points below your reserve. Allowances on both views come from the same latest reading, including when you move the start.
+- The planner uses reset timing from a successful live reading up to 30 minutes old. Manual and saved readings can still show allowance and reserve. A window whose reported reset has already passed needs a fresh reading.
+- **Next session** follows the lower available reported percentage. Its amber value means the reading is below your selected reserve. Its reset time appears when that window's known reset falls inside or at the end of a block starting now. **Usage alerts** have their own settings.
 
 ## History and alerts
 

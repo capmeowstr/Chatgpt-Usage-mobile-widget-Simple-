@@ -26,6 +26,7 @@
                 <data android:scheme="workusage" android:host="open" />
             </intent-filter>
         </activity>
+        <activity android:name=".SessionPlannerActivity" android:exported="false" />
         <receiver
             android:name=".UsageWidget"
             android:exported="false"
@@ -58,6 +59,17 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/usage_widget_compact" />
+        </receiver>
+        <receiver
+            android:name=".UsageWidget$Session"
+            android:exported="false"
+            android:label="@string/widget_session_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/usage_widget_session" />
         </receiver>
         <service
             android:name=".SyncJob"

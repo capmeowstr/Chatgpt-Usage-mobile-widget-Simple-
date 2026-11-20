@@ -7,7 +7,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.format.DateFormat;
 import android.widget.RemoteViews;
+
+import java.util.Date;
 
 public class UsageWidget extends AppWidgetProvider {
     private static final String REFRESH = "app.workusage.widget.REFRESH";
@@ -16,7 +19,8 @@ public class UsageWidget extends AppWidgetProvider {
     enum Variant {
         FULL(UsageWidget.class, R.string.widget_pick_full),
         FIVE_HOUR(FiveHour.class, R.string.widget_pick_five_hour),
-        WEEKLY(Weekly.class, R.string.widget_pick_weekly);
+        WEEKLY(Weekly.class, R.string.widget_pick_weekly),
+        SESSION(Session.class, R.string.widget_pick_session);
 
         private final Class<? extends UsageWidget> provider;
         final int pickerLabel;
@@ -46,6 +50,13 @@ public class UsageWidget extends AppWidgetProvider {
         @Override
         Variant variant() {
             return Variant.WEEKLY;
+        }
+    }
+
+    public static final class Session extends UsageWidget {
+        @Override
+        Variant variant() {
+            return Variant.SESSION;
         }
     }
 
@@ -106,7 +117,9 @@ public class UsageWidget extends AppWidgetProvider {
         UsageRepository repository = UsageRepository.get(context);
         UsageSnapshot snapshot = repository.snapshot();
         long now = System.currentTimeMillis();
-        RemoteViews views = display(context, WidgetAppearance.load(context), variant, snapshot, now);
+        boolean connected = repository.connected();
+        RemoteViews views = display(context, WidgetAppearance.load(context), variant, snapshot, now,
+                connected && repository.error() == null);
 
         Intent appIntent = new Intent(context, MainActivity.class)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -118,10 +131,14 @@ public class UsageWidget extends AppWidgetProvider {
             views.setOnClickPendingIntent(R.id.widget_open, openApp);
             views.setOnClickPendingIntent(R.id.widget_usage, openApp);
             views.setOnClickPendingIntent(R.id.widget_footer, openApp);
+        } else if (variant == Variant.SESSION) {
+            Intent planIntent = new Intent(context, SessionPlannerActivity.class)
+                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent planner = PendingIntent.getActivity(context, 203, planIntent, FLAGS);
+            views.setOnClickPendingIntent(R.id.widget_compact_body, planner);
         } else {
             views.setOnClickPendingIntent(R.id.widget_compact_body, openApp);
         }
-        boolean connected = repository.connected();
         views.setOnClickPendingIntent(R.id.widget_refresh, connected ? refresh : openApp);
         views.setContentDescription(R.id.widget_refresh,
                 context.getString(connected ? R.string.refresh_usage : R.string.open_work_usage));
@@ -133,7 +150,11 @@ public class UsageWidget extends AppWidgetProvider {
         UsageSnapshot sample = new UsageSnapshot(
                 new UsageSnapshot.Window(72, now + 2 * 60 * 60_000L),
                 new UsageSnapshot.Window(38, now + 3 * 24 * 60 * 60_000L), 2, now);
-        RemoteViews views = display(context, appearance, variant, sample, now);
+        if (variant == Variant.SESSION) {
+            sample = new UsageSnapshot(new UsageSnapshot.Window(12, now + 40 * 60_000L),
+                    new UsageSnapshot.Window(62, now + 2 * 24 * 60 * 60_000L), 2, now);
+        }
+        RemoteViews views = display(context, appearance, variant, sample, now, true);
         if (variant == Variant.FULL) {
             views.setTextViewText(R.id.widget_sync, context.getString(R.string.widget_style_sample));
         }
@@ -142,9 +163,14 @@ public class UsageWidget extends AppWidgetProvider {
     }
 
     private static RemoteViews display(Context context, WidgetAppearance appearance, Variant variant,
-                                       UsageSnapshot snapshot, long now) {
+                                       UsageSnapshot snapshot, long now, boolean live) {
+        if (variant == Variant.SESSION) {
+            return displaySession(context, appearance, snapshot, now, live);
+        }
         if (variant != Variant.FULL) {
-            return displayCompact(context, appearance, snapshot, now, variant == Variant.WEEKLY);
+            boolean weekly = variant == Variant.WEEKLY;
+            UsageSnapshot.Window window = snapshot == null ? null : (weekly ? snapshot.week : snapshot.fiveHours);
+            return displayCompact(context, appearance, window, now, weekly);
         }
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.usage_widget);
         appearance.apply(views);
@@ -158,13 +184,12 @@ public class UsageWidget extends AppWidgetProvider {
     }
 
     private static RemoteViews displayCompact(Context context, WidgetAppearance appearance,
-                                              UsageSnapshot snapshot, long now, boolean weekly) {
+                                              UsageSnapshot.Window window, long now, boolean weekly) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.usage_widget_compact);
         appearance.applyCompact(views, weekly);
         views.setTextViewText(R.id.widget_compact_label, context.getString(
                 weekly ? R.string.widget_compact_weekly : R.string.widget_compact_five_hour));
 
-        UsageSnapshot.Window window = snapshot == null ? null : weekly ? snapshot.week : snapshot.fiveHours;
         boolean showValue = window != null && !window.expired(now);
         String value = showValue ? window.percent(now) : context.getString(R.string.unknown);
         views.setTextViewText(R.id.widget_compact_value, value);
@@ -173,6 +198,42 @@ public class UsageWidget extends AppWidgetProvider {
         views.setContentDescription(R.id.widget_compact_body, showValue
                 ? context.getString(R.string.widget_compact_summary, limit, value)
                 : context.getString(R.string.widget_compact_unavailable, limit));
+        return views;
+    }
+
+    private static RemoteViews displaySession(Context context, WidgetAppearance appearance,
+                                              UsageSnapshot snapshot, long now, boolean live) {
+        int duration = SessionPlan.duration(context);
+        SessionPlan plan = new SessionPlan(snapshot, live, now, duration, false);
+        UsageSnapshot.Window focus = plan.lowerAllowance();
+        boolean weekly = focus != null && focus == plan.week;
+        boolean belowReserve = focus != null && focus.remaining < SessionPlan.reserve(context);
+        RemoteViews views = displayCompact(context, appearance, focus, now, weekly);
+        if (belowReserve) {
+            appearance.highlightBelowReserve(views);
+        }
+        String label;
+        if (focus == null) {
+            label = context.getString(R.string.widget_session_empty);
+        } else {
+            String period = context.getString(weekly ? R.string.session_short_week : R.string.session_short_five);
+            SessionPlan.Timing timing = plan.timing(focus);
+            if (timing == SessionPlan.Timing.INSIDE || timing == SessionPlan.Timing.END) {
+                label = context.getString(R.string.widget_session_reset, period,
+                        DateFormat.getTimeFormat(context).format(new Date(plan.reset(focus))));
+            } else if (plan.source == SessionPlan.Source.SAVED || plan.source == SessionPlan.Source.MANUAL) {
+                label = context.getString(R.string.widget_session_saved, period);
+            } else if (belowReserve) {
+                label = context.getString(R.string.widget_session_low, period);
+            } else {
+                label = context.getString(weekly ? R.string.widget_compact_weekly : R.string.widget_compact_five_hour);
+            }
+        }
+        views.setTextViewText(R.id.widget_compact_label, label);
+        String description = focus == null ? context.getString(R.string.widget_session_no_allowance)
+                : context.getString(belowReserve ? R.string.widget_session_accessibility_low
+                        : R.string.widget_session_accessibility, label, focus.percent(now));
+        views.setContentDescription(R.id.widget_compact_body, description);
         return views;
     }
 

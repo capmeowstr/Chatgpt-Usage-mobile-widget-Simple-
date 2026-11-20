@@ -1,43 +1,44 @@
 # Work Usage Widget
 
-![Work Usage Widget v1.5 with the full ChatGPT Work dashboard and compact Ocean and Sunset widgets](docs/images/work-usage-v1.5-hero.webp)
+![Work Usage Widget v1.6 showing the Session planner, two quota timelines, and the 2 × 1 Next session widget](docs/images/work-usage-v1.6-hero.webp)
 
 <p align="center">
-  <a href="downloads/ChatGPT_Work_Usage_v1_5.apk?raw=true"><img src="docs/images/download-v1.5.png" width="216" alt="Download Work Usage Widget v1.5 APK"></a>
+  <a href="downloads/ChatGPT_Work_Usage_v1_6.apk?raw=true"><img src="docs/images/download-v1.6.png" width="216" alt="Download Work Usage Widget v1.6 APK"></a>
 </p>
 <p align="center">
-  Android 8.0+ · <a href="#get-started">Quick start</a> · <a href="docs/release-notes-v1.5.md">Release notes</a> · <a href="downloads/SHA256SUMS">SHA-256</a>
+  Android 8.0+ · <a href="#get-started">Quick start</a> · <a href="docs/release-notes-v1.6.md">Release notes</a> · <a href="downloads/SHA256SUMS">SHA-256</a>
 </p>
 
-See your remaining ChatGPT Work and Codex allowance on your home screen. Open the app for reset countdowns, a seven-day history chart, and optional low-usage alerts.
+Check your ChatGPT Work and Codex allowances on Android. **Session planner** puts your five-hour and weekly resets on one timeline so you can see where they land in your next work block.
 
-## Choose your widget
+## Plan around a reset
 
-| Layout | Home-screen size | What it shows |
+![Sample 60-minute session. Starting at 20:30 puts the five-hour reset 40 minutes into the block. Starting at 21:10 moves that same reset to the beginning.](docs/images/work-usage-v1.6-plan.webp)
+
+1. Open **Plan a session** and choose a 30-, 60-, 90-, or 120-minute block.
+2. Switch between **Now** and **At next reset** to see how the reported reset times line up with your block.
+3. Pick a 10%, 20%, or 30% reserve. Each track shows how far its latest reported allowance is above or below that reserve.
+
+The percentages stay tied to the latest reading. For reset timing, the planner uses a successful live sync from the last 30 minutes. The preview above uses sample data. [Details and examples](docs/guide.md#plan-a-session)
+
+## On your home screen
+
+| Widget | Size | What it shows |
 | --- | --- | --- |
-| **Full** | 4 × 2 | Both allowances, reset times, earned resets, and last update |
-| **Five-hour** | 2 × 1 | Five-hour allowance and progress bar |
-| **Weekly** | 2 × 1 | Weekly allowance and progress bar |
+| **Next session** | 2 × 1 | The lower reported allowance, a reserve cue, and its reset time when it falls in your chosen block. Tap to open Session planner. |
+| **Full** | 4 × 2 | Both allowances, reset times, earned resets, and the last update. |
+| **Five-hour** | 2 × 1 | Five-hour allowance and progress bar. |
+| **Weekly** | 2 × 1 | Weekly allowance and progress bar. |
 
-Pin any combination. **Widget style** previews each layout in every theme and applies your choice to all pinned widgets.
+![The five widget themes with the same sample reading](docs/images/work-usage-v1.5-themes.webp)
 
-![Dark, Light, OLED, Ocean, and Sunset widget themes shown with the same sample reading](docs/images/work-usage-v1.5-themes.webp)
-
-## Track your usage
-
-![Illustrated preview of the seven-day history chart and configurable 10%, 20%, and 30% low-usage alerts](docs/images/work-usage-v1.5-tools.webp)
-
-- **History** charts the readings saved on this phone over the last seven days. It works with live sync and manual entries.
-- **Usage alerts** can notify you when a successful sync finds either limit at or below 10%, 20%, or 30% remaining. Alerts are off by default.
-- **Reset countdowns** show how long each limit has left next to the local reset time on the dashboard.
-
-Previews use sample data. [How history and alerts work](docs/guide.md#history-and-alerts)
+Choose **Dark**, **Light**, **OLED**, **Ocean**, or **Sunset** in **Widget style**. The app also includes on-device seven-day history, optional low-usage alerts, and dashboard reset countdowns. [History and alerts](docs/guide.md#history-and-alerts)
 
 ## Get started
 
-1. **Install** the APK on Android. Install updates over your existing copy to keep your setup.
-2. **Add your usage.** Connect with a device code for live sync, or enter values from the ChatGPT usage dashboard.
-3. **Pin your widget.** Open **Add to home screen**, then choose **Full**, **Five-hour**, or **Weekly**.
+1. **Install** the signed APK. Install over v1.5 to keep your existing setup.
+2. **Add usage** by connecting through a device code or entering values from your dashboard.
+3. **Pin a widget** through **Add to home screen**. Choose **Next session** for the planner shortcut.
 
 [Setup guide](docs/guide.md) · [Troubleshooting](docs/guide.md#troubleshooting) · [Build from source](docs/guide.md#build-from-source) · [Privacy](PRIVACY.md)
 

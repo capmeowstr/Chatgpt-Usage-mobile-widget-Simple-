@@ -87,4 +87,10 @@ enum WidgetAppearance {
         views.setInt(R.id.widget_compact_bar, "setColorFilter", accent);
         views.setInt(R.id.widget_refresh, "setColorFilter", accent);
     }
+
+    void highlightBelowReserve(RemoteViews views) {
+        int warning = this == LIGHT ? 0xFF8A3F0A : 0xFFFFD293;
+        views.setTextColor(R.id.widget_compact_value, warning);
+        views.setInt(R.id.widget_compact_bar, "setColorFilter", warning);
+    }
 }

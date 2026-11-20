@@ -16,6 +16,8 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -41,7 +43,7 @@ final class UsageRepository {
     private volatile LoginAttempt pendingLogin;
     private volatile boolean syncing;
     private long lastAttempt;
-    private Runnable listener;
+    private final Set<Runnable> listeners = new LinkedHashSet<>();
     private boolean signInVisible;
 
     private UsageRepository(Context context) {
@@ -95,13 +97,11 @@ final class UsageRepository {
     }
 
     void observe(Runnable refresh) {
-        listener = refresh;
+        listeners.add(refresh);
     }
 
     void stopObserving(Runnable refresh) {
-        if (listener == refresh) {
-            listener = null;
-        }
+        listeners.remove(refresh);
     }
 
     void setSignInVisible(boolean visible) {
@@ -455,7 +455,7 @@ final class UsageRepository {
     private void changed() {
         main.post(() -> {
             UsageWidget.renderAll(context);
-            if (listener != null) {
+            for (Runnable listener : listeners.toArray(new Runnable[0])) {
                 listener.run();
             }
         });

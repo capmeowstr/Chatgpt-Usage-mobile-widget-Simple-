@@ -2,7 +2,7 @@
 
 ## Data on your phone
 
-The app saves the displayed allowances, reset times, earned reset count, last-updated time, and widget style in private app storage. Manual entry saves a snapshot locally and works independently of sign-in.
+The app saves the displayed allowances, reset times, earned reset count, last-updated time, widget style, and session planner preferences in private app storage. Manual entry saves a snapshot locally and works independently of sign-in.
 
 History keeps up to seven days of readings from syncs and manual entries in private app storage. You can erase it with **Clear history**. A fresh sign-in clears previously synced readings and retains manually entered history. Usage alerts are off by default, and their preferences are stored locally. Android displays enabled usage alerts as private notifications.
 
