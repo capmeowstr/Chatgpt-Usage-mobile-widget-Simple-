@@ -19,6 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.regex.Pattern;
 
 final class CodexClient {
@@ -63,21 +64,7 @@ final class CodexClient {
         void awaitForeground(long deadline) throws InterruptedException;
     }
 
-    static String authorizeUrl(String redirect, String challenge, String state) {
-        return ISSUER + "/oauth/authorize?" + params(
-                "response_type", "code",
-                "client_id", CLIENT_ID,
-                "redirect_uri", redirect,
-                "scope", "openid profile email offline_access",
-                "code_challenge", challenge,
-                "code_challenge_method", "S256",
-                "id_token_add_organizations", "true",
-                "codex_cli_simplified_flow", "true",
-                "state", state,
-                "originator", APP_ID);
-    }
-
-    Session exchange(String code, String redirect, String verifier)
+    Session exchange(String code, String verifier)
             throws IOException, JSONException {
         if (!validAuthorizationCode(code) || verifier == null || !VERIFIER.matcher(verifier).matches()) {
             throw new JSONException("Invalid authorization credentials");
@@ -85,7 +72,7 @@ final class CodexClient {
         JSONObject response = request(TOKEN_URL, "application/x-www-form-urlencoded", params(
                 "grant_type", "authorization_code",
                 "code", code,
-                "redirect_uri", redirect,
+                "redirect_uri", DEVICE_REDIRECT,
                 "client_id", CLIENT_ID,
                 "code_verifier", verifier), null);
         return Session.fromTokenResponse(response, null);
@@ -161,10 +148,11 @@ final class CodexClient {
         }
     }
 
-    UsageSnapshot getSnapshot(Session session) throws IOException, JSONException {
+    UsageSnapshot getSnapshot(Session session, BooleanSupplier active) throws IOException, JSONException {
         JSONObject usage = request(QUOTA_BASE + "/usage", null, null, session);
         UsageSnapshot snapshot = UsageSnapshot.fromUsage(usage, System.currentTimeMillis());
-        if (snapshot.earnedResets == null && SystemClock.elapsedRealtime() >= resetCreditsRetryAt) {
+        if (snapshot.earnedResets == null && active.getAsBoolean()
+                && SystemClock.elapsedRealtime() >= resetCreditsRetryAt) {
             try {
                 JSONObject resets = request(QUOTA_BASE + "/rate-limit-reset-credits",
                         null, null, session);
@@ -192,7 +180,7 @@ final class CodexClient {
             connection.setReadTimeout(session == null ? AUTH_READ_TIMEOUT_MS : USAGE_READ_TIMEOUT_MS);
             connection.setUseCaches(false);
             connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("User-Agent", "WorkUsage/1.6.1 (Android)");
+            connection.setRequestProperty("User-Agent", "WorkUsage/1.6.2 (Android)");
             if (session != null) {
                 connection.setRequestProperty("originator", APP_ID);
                 connection.setRequestProperty("Authorization", "Bearer " + session.accessToken);

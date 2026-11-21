@@ -29,7 +29,7 @@ final class UsageHistory {
             points.remove(last);
         }
         points.add(new Point(time, fiveHours, week, snapshot.manuallyEntered));
-        save(context, points);
+        editReadings(context, points).apply();
     }
 
     static synchronized List<Point> recent(Context context, long now) {
@@ -52,7 +52,7 @@ final class UsageHistory {
                 }
             }
             if (points.size() != entries.length()) {
-                save(context, points);
+                editReadings(context, points).apply();
             }
         } catch (JSONException ignored) {
             // A damaged history should never prevent usage sync.
@@ -60,14 +60,18 @@ final class UsageHistory {
         return points;
     }
 
-    static synchronized void clearSynced(Context context) {
+    static synchronized boolean clearSynced(Context context) {
         List<Point> points = recent(context, System.currentTimeMillis());
         points.removeIf(point -> !point.manual);
-        save(context, points);
+        return editReadings(context, points).commit();
     }
 
-    static synchronized void clear(Context context) {
-        preferences(context).edit().remove(POINTS).apply();
+    static boolean hasSavedReadings(Context context) {
+        return preferences(context).contains(POINTS);
+    }
+
+    static synchronized boolean clear(Context context) {
+        return preferences(context).edit().remove(POINTS).commit();
     }
 
     private static Double remaining(UsageSnapshot.Window window, long time) {
@@ -78,7 +82,7 @@ final class UsageHistory {
         return Double.isFinite(value) && value >= 0 && value <= 100 ? value : null;
     }
 
-    private static void save(Context context, List<Point> points) {
+    private static SharedPreferences.Editor editReadings(Context context, List<Point> points) {
         JSONArray entries = new JSONArray();
         for (Point point : points) {
             entries.put(new JSONArray().put(point.time)
@@ -86,7 +90,13 @@ final class UsageHistory {
                     .put(point.week == null ? JSONObject.NULL : point.week)
                     .put(point.manual));
         }
-        preferences(context).edit().putString(POINTS, entries.toString()).apply();
+        SharedPreferences.Editor editor = preferences(context).edit();
+        if (points.isEmpty()) {
+            editor.remove(POINTS);
+        } else {
+            editor.putString(POINTS, entries.toString());
+        }
+        return editor;
     }
 
     private static SharedPreferences preferences(Context context) {

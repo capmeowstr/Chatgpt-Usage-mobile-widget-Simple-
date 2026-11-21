@@ -55,12 +55,13 @@ public final class MainActivity extends Activity {
     private TextView primary;
     private TextView secondaryAccount;
     private TextView deviceCode;
-    private TextView browserSignIn;
     private TextView deviceSettings;
     private TextView enterDashboardValues;
     private TextView alerts;
     private LimitViews fiveHourCard;
     private LimitViews weekCard;
+    private AlertDialog historyDialog;
+    private boolean showingSyncedHistory;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,6 +143,9 @@ public final class MainActivity extends Activity {
         add(content, status, 7);
 
         deviceCode = text("", 24, color(R.color.mint), "monospace");
+        if (Build.VERSION.SDK_INT >= 34) {
+            deviceCode.setAccessibilityDataSensitive(View.ACCESSIBILITY_DATA_SENSITIVE_YES);
+        }
         deviceCode.setGravity(Gravity.CENTER);
         deviceCode.setPadding(dp(12), dp(13), dp(12), dp(13));
         deviceCode.setBackground(shape(color(R.color.surface), 14));
@@ -192,8 +196,6 @@ public final class MainActivity extends Activity {
 
         TextView dashboard = link("Open usage dashboard", () -> openBrowser(CodexClient.DASHBOARD));
         add(content, dashboard, 5);
-        browserSignIn = link("Use browser sign-in", this::startBrowserSignIn);
-        add(content, browserSignIn, 0);
         deviceSettings = link("Device code settings", () -> openBrowser(CodexClient.SECURITY_SETTINGS));
         add(content, deviceSettings, 0);
         enterDashboardValues = link("Enter dashboard values", this::showManualUsage);
@@ -247,7 +249,10 @@ public final class MainActivity extends Activity {
 
         boolean signingIn = repository.signingIn();
         boolean connected = repository.connected();
-        boolean usingCode = repository.signingInWithDeviceCode();
+        boolean erasing = repository.erasing();
+        if (historyDialog != null && (erasing || (!connected && showingSyncedHistory))) {
+            historyDialog.dismiss();
+        }
         String code = repository.deviceUserCode();
         boolean showCode = code != null && !repository.exchanging();
         if (showCode) {
@@ -259,17 +264,14 @@ public final class MainActivity extends Activity {
         if (!showCode) {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
         }
-        browserSignIn.setVisibility(!signingIn && !connected ? View.VISIBLE : View.GONE);
-        deviceSettings.setVisibility(!connected && !repository.exchanging() ? View.VISIBLE : View.GONE);
-        enterDashboardValues.setVisibility(!signingIn && (!connected || repository.error() != null)
+        deviceSettings.setVisibility(!erasing && !connected && !repository.exchanging() ? View.VISIBLE : View.GONE);
+        enterDashboardValues.setVisibility(!erasing && !signingIn && (!connected || repository.error() != null)
                 ? View.VISIBLE : View.GONE);
         if (signingIn) {
             if (repository.exchanging()) {
                 primary.setText("Connecting…");
-            } else if (usingCode) {
-                primary.setText(code == null ? "Getting a device code…" : "Open OpenAI sign-in");
             } else {
-                primary.setText("Continue browser sign-in");
+                primary.setText(code == null ? "Getting a device code…" : "Open OpenAI sign-in");
             }
             secondaryAccount.setText("Cancel sign-in");
         } else if (connected) {
@@ -277,9 +279,12 @@ public final class MainActivity extends Activity {
             secondaryAccount.setText("Disconnect");
         } else {
             primary.setText("Connect with a device code");
+            secondaryAccount.setText("Clear saved usage");
         }
-        secondaryAccount.setVisibility(signingIn || connected ? View.VISIBLE : View.GONE);
-        primary.setEnabled(!repository.exchanging() && !repository.syncing() && (!usingCode || code != null));
+        secondaryAccount.setVisibility(!erasing && (signingIn || connected || repository.hasSavedUsage())
+                ? View.VISIBLE : View.GONE);
+        primary.setEnabled(!erasing && !repository.exchanging() && !repository.syncing()
+                && (!signingIn || code != null));
         primary.setAlpha(primary.isEnabled() ? 1f : 0.67f);
     }
 
@@ -289,15 +294,16 @@ public final class MainActivity extends Activity {
     }
 
     private String statusText(UsageSnapshot snapshot, long now) {
+        if (repository.erasing()) {
+            String error = repository.error();
+            return error == null ? "Clearing saved data…" : error;
+        }
         if (repository.signingIn()) {
             if (repository.exchanging()) {
                 return "Finishing ChatGPT sign-in…";
             }
-            if (repository.signingInWithDeviceCode()) {
-                return repository.deviceUserCode() == null ? "Requesting a one-time code from OpenAI."
-                        : "Enter this code on OpenAI’s sign-in page, then switch back here to finish.";
-            }
-            return "Finish signing in with your browser, then return here.";
+            return repository.deviceUserCode() == null ? "Requesting a one-time code from OpenAI."
+                    : "Enter this code on OpenAI’s sign-in page, then switch back here to finish.";
         }
         if (repository.syncing()) {
             return "Syncing with ChatGPT…";
@@ -321,26 +327,21 @@ public final class MainActivity extends Activity {
             repository.refresh(true, null);
             return;
         }
-        if (repository.signingInWithDeviceCode()) {
+        if (repository.signingIn()) {
             String code = repository.deviceUserCode();
             if (code != null) {
                 openBrowser(CodexClient.DEVICE_VERIFICATION_URL);
             }
             return;
         }
-        if (repository.signingIn()) {
-            startBrowserSignIn();
-            return;
-        }
-        repository.startSignIn(true, null);
-    }
-
-    private void startBrowserSignIn() {
-        repository.startSignIn(false, url -> {
-            if (!isFinishing() && !isDestroyed() && !openBrowser(url)) {
-                repository.cancelSignIn("Open a browser on this phone to sign in.");
-            }
-        });
+        AlertDialog consent = new AlertDialog.Builder(this)
+                .setTitle("Enable live sync?")
+                .setMessage("Work Usage uses a Codex session, which grants broader access than reading usage. "
+                        + "The app encrypts the session on this phone. You can enter values manually without signing in.")
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton("Continue to sign in", (dialog, which) -> repository.startSignIn())
+                .show();
+        consent.getButton(AlertDialog.BUTTON_POSITIVE).setFilterTouchesWhenObscured(true);
     }
 
     private void showManualUsage() {
@@ -435,11 +436,14 @@ public final class MainActivity extends Activity {
             repository.cancelSignIn(null);
             return;
         }
+        boolean connected = repository.connected();
         new AlertDialog.Builder(this)
-                .setTitle("Disconnect ChatGPT?")
-                .setMessage("Your saved usage and history will be cleared from this phone.")
+                .setTitle(connected ? "Disconnect ChatGPT?" : "Clear saved usage?")
+                .setMessage(connected
+                        ? "This clears the app’s saved session and usage on this phone. Account-side access is managed by OpenAI."
+                        : "This clears saved usage and history from this phone.")
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Disconnect", (dialog, which) -> repository.disconnect())
+                .setPositiveButton(connected ? "Disconnect" : "Clear", (dialog, which) -> repository.disconnect())
                 .show();
     }
 
@@ -475,7 +479,7 @@ public final class MainActivity extends Activity {
 
     private void showUsageHistory() {
         long now = System.currentTimeMillis();
-        List<UsageHistory.Point> points = UsageHistory.recent(this, now);
+        List<UsageHistory.Point> points = repository.history();
         AlertDialog.Builder dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.history_title)
                 .setPositiveButton(android.R.string.ok, null);
@@ -503,14 +507,21 @@ public final class MainActivity extends Activity {
         add(content, key, 10);
         ScrollView scroll = new ScrollView(this);
         scroll.addView(content);
-        dialog.setView(scroll)
+        showingSyncedHistory = points.stream().anyMatch(point -> !point.manual);
+        historyDialog = dialog.setView(scroll)
                 .setNeutralButton(R.string.history_clear, (view, which) -> new AlertDialog.Builder(this)
                         .setTitle(R.string.history_clear)
                         .setMessage(R.string.history_clear_confirm)
                         .setNegativeButton(android.R.string.cancel, null)
-                        .setPositiveButton(R.string.history_clear, (confirm, action) -> UsageHistory.clear(this))
+                        .setPositiveButton(R.string.history_clear, (confirm, action) -> repository.clearHistory())
                         .show())
                 .show();
+        historyDialog.setOnDismissListener(dismissed -> {
+            if (historyDialog == dismissed) {
+                historyDialog = null;
+                showingSyncedHistory = false;
+            }
+        });
     }
 
     private String historyPercent(Double percent) {

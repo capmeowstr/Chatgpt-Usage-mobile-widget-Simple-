@@ -3,10 +3,10 @@
 ![Work Usage Widget v1.6 showing the Session planner, two quota timelines, and the 2 × 1 Next session widget](docs/images/work-usage-v1.6-hero.webp)
 
 <p align="center">
-  <strong><a href="downloads/ChatGPT_Work_Usage_v1_6_1.apk?raw=true">Download v1.6.1 for Android</a></strong>
+  <strong><a href="downloads/ChatGPT_Work_Usage_v1_6_2.apk?raw=true">Download v1.6.2 for Android</a></strong>
 </p>
 <p align="center">
-  Android 8.0+ · <a href="#get-started">Quick start</a> · <a href="docs/release-notes-v1.6.1.md">Release notes</a> · <a href="downloads/SHA256SUMS">SHA-256</a>
+  Android 8.0+ · <a href="#get-started">Quick start</a> · <a href="docs/release-notes-v1.6.2.md">Release notes</a> · <a href="downloads/SHA256SUMS">SHA-256</a>
 </p>
 
 Check your ChatGPT Work and Codex allowances on Android. **Session planner** puts your five-hour and weekly resets on one timeline so you can see where they land in your next work block.

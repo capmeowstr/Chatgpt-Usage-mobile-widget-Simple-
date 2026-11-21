@@ -16,3 +16,7 @@ Live sync currently depends on ChatGPT backend endpoints used by Codex. These en
 - [x] Verify the v1.2 APK signature, package name, version, and submitted files.
 
 Use sample values for public screenshots and omit sign-in screens from release assets. The [v1.2 release notes](release-notes-v1.2.md) describe this version.
+
+## Release key custody
+
+Keep the production signing key in an owner-controlled signing environment and keep its passphrase in a separate credential store. Build the unsigned APK first, sign it in that environment, and return only the signed APK. Verify that the signing certificate matches the preceding release before publishing it. [Android signing guidance](https://developer.android.com/studio/publish/app-signing#secure-key)

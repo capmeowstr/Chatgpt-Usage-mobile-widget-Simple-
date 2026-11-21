@@ -2,7 +2,7 @@
 
 ## Quick start
 
-Download the [v1.6.1 APK](../downloads/ChatGPT_Work_Usage_v1_6_1.apk?raw=true), open it on Android, and follow the install prompt. Existing users can update in place. Open **Work Usage** after installation.
+Download the [v1.6.2 APK](../downloads/ChatGPT_Work_Usage_v1_6_2.apk?raw=true), open it on Android, and follow the install prompt. Existing users can update in place. Open **Work Usage** after installation.
 
 ### Enter values manually
 
@@ -16,12 +16,16 @@ Download the [v1.6.1 APK](../downloads/ChatGPT_Work_Usage_v1_6_1.apk?raw=true), 
 Live sync uses the [Codex device-code sign-in flow](https://learn.chatgpt.com/docs/auth#login-on-headless-devices).
 
 1. In ChatGPT security settings, enable device-code sign-in if the official sign-in page asks you to.
-2. In **Work Usage**, tap **Connect with a device code**, then **Open OpenAI sign-in**.
+2. In **Work Usage**, tap **Connect with a device code**. Review the access notice, tap **Continue to sign in**, then **Open OpenAI sign-in** when the code appears.
 3. On OpenAI’s sign-in page, type the one-time code shown in Work Usage, then approve the request.
 4. Switch back to **Work Usage** after the browser confirms approval. Leave the app open while it finishes sign-in and loads your values.
 5. Compare the widget’s values and reset times with the official usage dashboard. Check the last-sync time when the numbers differ.
 
-Tap the refresh icon to request an update. Android schedules background refreshes at roughly 15-minute intervals while a widget is pinned and the app is connected. The phone can defer those updates to save power.
+Use manual entry if device-code sign-in is unavailable for your account. Tap the refresh icon to request an update. Android schedules background refreshes at roughly 15-minute intervals while a widget is pinned and the app is connected. The phone can defer those updates to save power.
+
+## Disconnect or clear usage
+
+**Disconnect** hides account readings and clears this app’s local sign-in, usage, and history. If your session expires, the app clears synced readings and keeps manual entries. Use **Clear saved usage** while signed out to remove any remaining readings and history.
 
 ## Add a widget
 
