@@ -6,7 +6,7 @@ The app saves the displayed allowances, reset times, earned reset count, last-up
 
 History keeps up to seven days of readings from syncs and manual entries in private app storage. You can erase it with **Clear history**. A fresh sign-in clears previously synced readings and retains manually entered history. Usage alerts are off by default, and their preferences are stored locally. Android displays enabled usage alerts as private notifications.
 
-Live sync uses a Codex session. The app saves its access and refresh credentials encrypted with an Android Keystore key. Account credentials are broader than the usage counters shown by the widget. Enter one-time codes only on OpenAI’s sign-in page when you started the request yourself.
+Live sync uses a Codex session. The app saves its access and refresh credentials encrypted with an Android Keystore key. Account credentials are broader than the usage counters shown by the widget. Enter one-time codes only on OpenAI’s sign-in page when you started the request yourself. Work Usage keeps the code off the clipboard and uses Android’s secure-window flag while displaying it. The app excludes its preferences from Android cloud backup and device transfer.
 
 ## Network requests
 
@@ -14,7 +14,7 @@ The app contacts OpenAI’s sign-in service to request, exchange, and renew sign
 
 ## Disconnecting
 
-**Disconnect** in Work Usage erases the app’s saved session, cached snapshot, and usage history. It cancels pending usage alerts and refresh jobs. To disconnect account-side access, review the **Codex CLI** entry under **Sign in with ChatGPT** in ChatGPT settings. Disconnecting that entry may affect other Codex CLI sessions.
+**Disconnect** in Work Usage removes the app’s saved session and its local encryption key, cached snapshot, and usage history. It cancels pending usage alerts and refresh jobs. To disconnect account-side access, review the **Codex CLI** entry under **Sign in with ChatGPT** in ChatGPT settings. Disconnecting that entry may affect other Codex CLI sessions.
 
 ## Reporting a problem
 

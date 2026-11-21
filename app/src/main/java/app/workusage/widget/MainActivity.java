@@ -4,9 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.appwidget.AppWidgetManager;
 import android.content.ActivityNotFoundException;
-import android.content.ClipData;
-import android.content.ClipDescription;
-import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
@@ -19,13 +16,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.PersistableBundle;
 import android.provider.Settings;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -169,6 +166,7 @@ public final class MainActivity extends Activity {
         add(content, planner, 10);
 
         primary = button("Connect with a device code", true);
+        primary.setFilterTouchesWhenObscured(true);
         primary.setOnClickListener(v -> accountAction());
         add(content, primary, 18);
 
@@ -251,9 +249,16 @@ public final class MainActivity extends Activity {
         boolean connected = repository.connected();
         boolean usingCode = repository.signingInWithDeviceCode();
         String code = repository.deviceUserCode();
-        deviceCode.setVisibility(code != null && !repository.exchanging() ? View.VISIBLE : View.GONE);
-        deviceCode.setText(code);
-        deviceCode.setContentDescription(code == null ? null : "One-time device code " + code);
+        boolean showCode = code != null && !repository.exchanging();
+        if (showCode) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
+        deviceCode.setText(showCode ? code : null);
+        deviceCode.setContentDescription(showCode ? "One-time device code " + code : null);
+        deviceCode.setVisibility(showCode ? View.VISIBLE : View.GONE);
+        if (!showCode) {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
         browserSignIn.setVisibility(!signingIn && !connected ? View.VISIBLE : View.GONE);
         deviceSettings.setVisibility(!connected && !repository.exchanging() ? View.VISIBLE : View.GONE);
         enterDashboardValues.setVisibility(!signingIn && (!connected || repository.error() != null)
@@ -262,7 +267,7 @@ public final class MainActivity extends Activity {
             if (repository.exchanging()) {
                 primary.setText("Connecting…");
             } else if (usingCode) {
-                primary.setText(code == null ? "Getting a device code…" : "Copy code and open ChatGPT");
+                primary.setText(code == null ? "Getting a device code…" : "Open OpenAI sign-in");
             } else {
                 primary.setText("Continue browser sign-in");
             }
@@ -290,7 +295,7 @@ public final class MainActivity extends Activity {
             }
             if (repository.signingInWithDeviceCode()) {
                 return repository.deviceUserCode() == null ? "Requesting a one-time code from OpenAI."
-                        : "Approve the code in your browser, then switch back here to finish signing in.";
+                        : "Enter this code on OpenAI’s sign-in page, then switch back here to finish.";
             }
             return "Finish signing in with your browser, then return here.";
         }
@@ -319,7 +324,7 @@ public final class MainActivity extends Activity {
         if (repository.signingInWithDeviceCode()) {
             String code = repository.deviceUserCode();
             if (code != null) {
-                copyCodeAndOpenChatGpt(code);
+                openBrowser(CodexClient.DEVICE_VERIFICATION_URL);
             }
             return;
         }
@@ -336,18 +341,6 @@ public final class MainActivity extends Activity {
                 repository.cancelSignIn("Open a browser on this phone to sign in.");
             }
         });
-    }
-
-    private void copyCodeAndOpenChatGpt(String code) {
-        ClipboardManager clipboard = getSystemService(ClipboardManager.class);
-        ClipData clip = ClipData.newPlainText("OpenAI one-time code", code);
-        if (Build.VERSION.SDK_INT >= 33) {
-            PersistableBundle extras = new PersistableBundle();
-            extras.putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true);
-            clip.getDescription().setExtras(extras);
-        }
-        clipboard.setPrimaryClip(clip);
-        openBrowser(CodexClient.DEVICE_VERIFICATION_URL);
     }
 
     private void showManualUsage() {

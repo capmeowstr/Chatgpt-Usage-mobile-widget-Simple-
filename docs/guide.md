@@ -2,7 +2,7 @@
 
 ## Quick start
 
-Download the [v1.6 APK](../downloads/ChatGPT_Work_Usage_v1_6.apk?raw=true), open it on Android, and follow the install prompt. Existing users can update in place. Open **Work Usage** after installation.
+Download the [v1.6.1 APK](../downloads/ChatGPT_Work_Usage_v1_6_1.apk?raw=true), open it on Android, and follow the install prompt. Existing users can update in place. Open **Work Usage** after installation.
 
 ### Enter values manually
 
@@ -16,8 +16,8 @@ Download the [v1.6 APK](../downloads/ChatGPT_Work_Usage_v1_6.apk?raw=true), open
 Live sync uses the [Codex device-code sign-in flow](https://learn.chatgpt.com/docs/auth#login-on-headless-devices).
 
 1. In ChatGPT security settings, enable device-code sign-in if the official sign-in page asks you to.
-2. In **Work Usage**, tap **Connect with a device code**, then **Copy code and open ChatGPT**.
-3. On OpenAI’s sign-in page, enter the one-time code you just generated and approve the request.
+2. In **Work Usage**, tap **Connect with a device code**, then **Open OpenAI sign-in**.
+3. On OpenAI’s sign-in page, type the one-time code shown in Work Usage, then approve the request.
 4. Switch back to **Work Usage** after the browser confirms approval. Leave the app open while it finishes sign-in and loads your values.
 5. Compare the widget’s values and reset times with the official usage dashboard. Check the last-sync time when the numbers differ.
 

@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.ProviderException;
+import java.util.Arrays;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
@@ -23,6 +25,7 @@ final class TokenVault {
     private static final String KEYSTORE = "AndroidKeyStore";
     private static final String KEY_ALIAS = "work-usage-session";
     private static final String SESSION = "encrypted_session";
+    private static final int MAX_RECORD_LENGTH = 128 * 1024;
     private final SharedPreferences privateState;
 
     TokenVault(Context context) {
@@ -34,42 +37,83 @@ final class TokenVault {
     }
 
     CodexClient.Session load() throws GeneralSecurityException, IOException, JSONException {
-        String encrypted = privateState.getString(SESSION, null);
-        if (encrypted == null) {
-            return null;
+        try {
+            String encrypted = privateState.getString(SESSION, null);
+            if (encrypted == null) {
+                return null;
+            }
+            byte[][] record = decodeRecord(encrypted);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, key(false), new GCMParameterSpec(128, record[0]));
+            byte[] plain = cipher.doFinal(record[1]);
+            try {
+                return CodexClient.Session.fromStorage(new JSONObject(new String(plain, StandardCharsets.UTF_8)));
+            } finally {
+                Arrays.fill(plain, (byte) 0);
+            }
+        } catch (ClassCastException | ProviderException e) {
+            throw new GeneralSecurityException("Invalid credential record", e);
         }
-        String[] segments = encrypted.split(":", 2);
-        if (segments.length != 2) {
-            throw new GeneralSecurityException("Invalid credential record");
-        }
-        Base64.Decoder base64 = Base64.getDecoder();
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, key(false),
-                new GCMParameterSpec(128, base64.decode(segments[0])));
-        byte[] plain = cipher.doFinal(base64.decode(segments[1]));
-        return CodexClient.Session.fromStorage(new JSONObject(new String(plain, StandardCharsets.UTF_8)));
     }
 
     void save(CodexClient.Session session)
             throws GeneralSecurityException, IOException, JSONException {
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.ENCRYPT_MODE, key(true));
-        byte[] plain = session.toJson().toString().getBytes(StandardCharsets.UTF_8);
-        Base64.Encoder base64 = Base64.getEncoder();
-        String encrypted = base64.encodeToString(cipher.getIV()) + ":"
-                + base64.encodeToString(cipher.doFinal(plain));
-        if (!privateState.edit().putString(SESSION, encrypted).commit()) {
-            throw new IOException("Could not save account session");
+        try {
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, key(true));
+            byte[] plain = session.toJson().toString().getBytes(StandardCharsets.UTF_8);
+            String encrypted;
+            try {
+                Base64.Encoder base64 = Base64.getEncoder();
+                encrypted = base64.encodeToString(cipher.getIV()) + ":"
+                        + base64.encodeToString(cipher.doFinal(plain));
+            } finally {
+                Arrays.fill(plain, (byte) 0);
+            }
+            if (!privateState.edit().putString(SESSION, encrypted).commit()) {
+                throw new IOException("Could not save account session");
+            }
+        } catch (ProviderException e) {
+            throw new GeneralSecurityException("Credential storage is unavailable", e);
         }
     }
 
-    void clear() {
-        privateState.edit().remove(SESSION).commit();
+    boolean clear() {
+        boolean removed = privateState.edit().remove(SESSION).commit();
+        try {
+            credentialStore().deleteEntry(KEY_ALIAS);
+            return true;
+        } catch (GeneralSecurityException | IOException | ProviderException e) {
+            return removed;
+        }
+    }
+
+    static byte[][] decodeRecord(String encrypted) throws GeneralSecurityException {
+        int separator = encrypted.indexOf(':');
+        if (encrypted.length() > MAX_RECORD_LENGTH || separator != 16) {
+            throw new GeneralSecurityException("Invalid credential record");
+        }
+        try {
+            Base64.Decoder base64 = Base64.getDecoder();
+            byte[] iv = base64.decode(encrypted.substring(0, separator));
+            byte[] ciphertext = base64.decode(encrypted.substring(separator + 1));
+            if (iv.length == 12 && ciphertext.length > 16) {
+                return new byte[][]{iv, ciphertext};
+            }
+        } catch (IllegalArgumentException e) {
+            throw new GeneralSecurityException("Invalid credential encoding", e);
+        }
+        throw new GeneralSecurityException("Invalid credential record");
+    }
+
+    private static KeyStore credentialStore() throws GeneralSecurityException, IOException {
+        KeyStore store = KeyStore.getInstance(KEYSTORE);
+        store.load(null);
+        return store;
     }
 
     private static SecretKey key(boolean create) throws GeneralSecurityException, IOException {
-        KeyStore store = KeyStore.getInstance(KEYSTORE);
-        store.load(null);
+        KeyStore store = credentialStore();
         SecretKey existing = (SecretKey) store.getKey(KEY_ALIAS, null);
         if (existing != null) {
             return existing;

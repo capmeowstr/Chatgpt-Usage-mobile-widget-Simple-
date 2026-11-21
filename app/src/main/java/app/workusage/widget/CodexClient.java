@@ -14,6 +14,9 @@ import java.net.ProtocolException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -36,11 +39,17 @@ final class CodexClient {
     private static final int USAGE_READ_TIMEOUT_MS = 12000;
     private static final int MAX_RESPONSE_BYTES = 256 * 1024;
     private static final long MAX_DEVICE_SECONDS = TimeUnit.MINUTES.toSeconds(15);
+    static final long MAX_RETRY_SECONDS = TimeUnit.HOURS.toSeconds(1);
+    static final long MIN_RATE_LIMIT_SECONDS = 30;
     private static final Pattern ACCOUNT_ID = Pattern.compile("[A-Za-z0-9_-]{1,128}");
     private static final Pattern BEARER = Pattern.compile("[A-Za-z0-9._~+/=-]{1,24576}");
+    private static final Pattern AUTHORIZATION_CODE = Pattern.compile("[!-~]{1,4096}");
+    private static final Pattern VERIFIER = Pattern.compile("[A-Za-z0-9._~-]{43,128}");
+    private static final Pattern REFRESH_TOKEN = Pattern.compile("[!-~]{0,24576}");
     private static final Pattern USER_CODE = Pattern.compile("[A-Za-z0-9-]{4,32}");
     private static final Pattern ERROR_CODE = Pattern.compile("[a-zA-Z0-9_-]{1,64}");
     private final Connections connections;
+    private long resetCreditsRetryAt;
 
     CodexClient(Connections connections) {
         this.connections = connections;
@@ -70,6 +79,9 @@ final class CodexClient {
 
     Session exchange(String code, String redirect, String verifier)
             throws IOException, JSONException {
+        if (!validAuthorizationCode(code) || verifier == null || !VERIFIER.matcher(verifier).matches()) {
+            throw new JSONException("Invalid authorization credentials");
+        }
         JSONObject response = request(TOKEN_URL, "application/x-www-form-urlencoded", params(
                 "grant_type", "authorization_code",
                 "code", code,
@@ -152,11 +164,16 @@ final class CodexClient {
     UsageSnapshot getSnapshot(Session session) throws IOException, JSONException {
         JSONObject usage = request(QUOTA_BASE + "/usage", null, null, session);
         UsageSnapshot snapshot = UsageSnapshot.fromUsage(usage, System.currentTimeMillis());
-        if (snapshot.earnedResets == null) {
+        if (snapshot.earnedResets == null && SystemClock.elapsedRealtime() >= resetCreditsRetryAt) {
             try {
                 JSONObject resets = request(QUOTA_BASE + "/rate-limit-reset-credits",
                         null, null, session);
                 snapshot = snapshot.withResets(UsageSnapshot.readResets(resets));
+            } catch (HttpFailure e) {
+                if (e.status == 429) {
+                    long wait = Math.max(MIN_RATE_LIMIT_SECONDS, e.retryAfterSeconds);
+                    resetCreditsRetryAt = SystemClock.elapsedRealtime() + TimeUnit.SECONDS.toMillis(wait);
+                }
             } catch (IOException | JSONException ignored) {
                 // The reset count and the two quota windows can be available independently.
             }
@@ -175,7 +192,7 @@ final class CodexClient {
             connection.setReadTimeout(session == null ? AUTH_READ_TIMEOUT_MS : USAGE_READ_TIMEOUT_MS);
             connection.setUseCaches(false);
             connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("User-Agent", "WorkUsage/1.6 (Android)");
+            connection.setRequestProperty("User-Agent", "WorkUsage/1.6.1 (Android)");
             if (session != null) {
                 connection.setRequestProperty("originator", APP_ID);
                 connection.setRequestProperty("Authorization", "Bearer " + session.accessToken);
@@ -206,7 +223,8 @@ final class CodexClient {
                     }
                 }
                 if (status < 200 || status >= 300) {
-                    throw new HttpFailure(status, errorCode(connection), retryAfter(connection));
+                    throw new HttpFailure(status, errorCode(connection),
+                            retryAfter(connection.getHeaderField("Retry-After"), System.currentTimeMillis()));
                 }
                 try (InputStream in = connection.getInputStream()) {
                     return new JSONObject(readBody(in, MAX_RESPONSE_BYTES));
@@ -250,13 +268,29 @@ final class CodexClient {
         }
     }
 
-    private static long retryAfter(HttpURLConnection response) {
-        try {
-            return Math.max(0, Math.min(MAX_DEVICE_SECONDS,
-                    Long.parseLong(response.getHeaderField("Retry-After"))));
-        } catch (NumberFormatException e) {
+    static long retryAfter(String value, long now) {
+        if (value == null || value.length() > 64) {
             return 0;
         }
+        try {
+            return Math.max(0, Math.min(MAX_RETRY_SECONDS, Long.parseLong(value.trim())));
+        } catch (NumberFormatException e) {
+            try {
+                long retryTime = ZonedDateTime.parse(value.trim(), DateTimeFormatter.RFC_1123_DATE_TIME)
+                        .toInstant().toEpochMilli();
+                if (retryTime <= now) {
+                    return 0;
+                }
+                long wait = Math.subtractExact(retryTime, now);
+                return Math.min(MAX_RETRY_SECONDS, 1 + (wait - 1) / 1000);
+            } catch (DateTimeParseException | ArithmeticException invalidDate) {
+                return 0;
+            }
+        }
+    }
+
+    static boolean validAuthorizationCode(String code) {
+        return code != null && AUTHORIZATION_CODE.matcher(code).matches();
     }
 
     private static String readBody(InputStream in, int limit) throws IOException {
@@ -359,8 +393,14 @@ final class CodexClient {
         }
 
         static Session fromStorage(JSONObject stored) throws JSONException {
-            return new Session(stored.getString("access"), stored.getString("refresh"),
-                    stored.getString("account"), stored.getLong("expiresAt"));
+            String access = stringOrEmpty(stored, "access");
+            String refresh = stringOrEmpty(stored, "refresh");
+            String account = stringOrEmpty(stored, "account");
+            if (!BEARER.matcher(access).matches() || !REFRESH_TOKEN.matcher(refresh).matches()
+                    || (!account.isEmpty() && !ACCOUNT_ID.matcher(account).matches())) {
+                throw new JSONException("Invalid stored session");
+            }
+            return new Session(access, refresh, account, stored.getLong("expiresAt"));
         }
 
         static Session fromTokenResponse(JSONObject response, Session previous) throws JSONException {
@@ -371,6 +411,9 @@ final class CodexClient {
             String refreshToken = stringOrEmpty(response, "refresh_token");
             if (refreshToken.isEmpty() && previous != null) {
                 refreshToken = previous.refreshToken;
+            }
+            if (!REFRESH_TOKEN.matcher(refreshToken).matches()) {
+                throw new JSONException("Invalid refresh token");
             }
 
             JSONObject accessClaims = jwtClaims(accessToken);
@@ -402,6 +445,9 @@ final class CodexClient {
         }
 
         private static JSONObject jwtClaims(String token) {
+            if (token.length() > 24576) {
+                return new JSONObject();
+            }
             String[] sections = token.split("\\.", -1);
             if (sections.length == 3) {
                 try {

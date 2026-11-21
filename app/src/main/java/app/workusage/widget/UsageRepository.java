@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import javax.net.ssl.SSLException;
@@ -28,6 +29,7 @@ import javax.net.ssl.SSLException;
 final class UsageRepository {
     private static final String CACHE = "usage_snapshot";
     private static final String ERROR = "sync_error";
+    private static final String RETRY_AT = "sync_retry_at";
     private static final long REFRESH_DEBOUNCE_MS = 4500;
     private static UsageRepository instance;
 
@@ -193,19 +195,24 @@ final class UsageRepository {
 
     private CodexClient.Session finishBrowserSignIn(LoginAttempt attempt, Consumer<String> openPage)
             throws IOException, JSONException, InterruptedException {
+        String code;
+        String redirect;
+        String verifier;
         try (BrowserLogin browser = new BrowserLogin()) {
             if (pendingLogin != attempt) {
                 return null;
             }
             attempt.browser = browser;
             launchSignInPage(attempt, openPage);
-            String code = browser.awaitCode();
+            code = browser.awaitCode();
             if (code == null) {
                 failSignIn(attempt, "Browser sign-in was cancelled.");
                 return null;
             }
-            return exchange(attempt, code, browser.redirect, browser.verifier);
+            redirect = browser.redirect;
+            verifier = browser.verifier;
         }
+        return exchange(attempt, code, redirect, verifier);
     }
 
     private CodexClient.Session exchange(LoginAttempt attempt, String code, String redirect,
@@ -323,10 +330,13 @@ final class UsageRepository {
 
     void disconnect() {
         worker.execute(() -> {
-            vault.clear();
-            state.edit().remove(CACHE).remove(ERROR).commit();
+            boolean cleared = vault.clear();
+            state.edit().remove(CACHE).remove(ERROR).remove(RETRY_AT).commit();
             UsageHistory.clear(context);
             UsageAlerts.clearPending(context);
+            if (!cleared) {
+                setError("This phone couldn’t erase the saved session. Clear Work Usage storage in Android settings.");
+            }
             lastAttempt = 0;
             SyncJob.cancel(context);
             changed();
@@ -365,18 +375,31 @@ final class UsageRepository {
             return;
         }
         long now = System.currentTimeMillis();
-        if (now >= lastAttempt && now - lastAttempt < REFRESH_DEBOUNCE_MS) {
+        long elapsed = SystemClock.elapsedRealtime();
+        long retryAt = state.getLong(RETRY_AT, 0);
+        if (retryAt > now) {
+            if (retryAt - now > TimeUnit.SECONDS.toMillis(CodexClient.MAX_RETRY_SECONDS)) {
+                state.edit().putLong(RETRY_AT, now + TimeUnit.SECONDS.toMillis(CodexClient.MAX_RETRY_SECONDS)).apply();
+            }
+            return;
+        }
+        if (lastAttempt != 0 && elapsed - lastAttempt < REFRESH_DEBOUNCE_MS) {
             return;
         }
         UsageSnapshot saved = snapshot();
         if (!force && saved != null && now >= saved.fetchedAt && now - saved.fetchedAt < 60_000) {
             return;
         }
-        lastAttempt = now;
+        lastAttempt = Math.max(1, elapsed);
         syncing = true;
         changed();
         try {
-            CodexClient.Session session = vault.load();
+            CodexClient.Session session;
+            try {
+                session = vault.load();
+            } catch (JSONException | IOException unreadableSession) {
+                throw new SessionExpired();
+            }
             if (session == null) {
                 return;
             }
@@ -396,7 +419,7 @@ final class UsageRepository {
                 }
                 updated = client.getSnapshot(renew(session));
             }
-            if (state.edit().putString(CACHE, updated.toJson().toString()).remove(ERROR).commit()) {
+            if (state.edit().putString(CACHE, updated.toJson().toString()).remove(ERROR).remove(RETRY_AT).commit()) {
                 UsageHistory.record(context, updated);
                 UsageAlerts.check(context, updated);
             }
@@ -408,7 +431,11 @@ final class UsageRepository {
             } else if (e.status == 403) {
                 setError("Usage access was denied for this ChatGPT workspace.");
             } else if (e.status == 429) {
-                setError("ChatGPT is busy. Try refreshing in a little while.");
+                long delay = Math.max(CodexClient.MIN_RATE_LIMIT_SECONDS, e.retryAfterSeconds);
+                state.edit()
+                        .putLong(RETRY_AT, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(delay))
+                        .putString(ERROR, "ChatGPT has paused usage checks. Try refreshing later.")
+                        .apply();
             } else {
                 setError("ChatGPT usage is temporarily unavailable.");
             }
@@ -438,10 +465,11 @@ final class UsageRepository {
     }
 
     private void requireSignIn() {
-        vault.clear();
+        boolean cleared = vault.clear();
         SyncJob.cancel(context);
         UsageAlerts.clearPending(context);
-        setError("Your ChatGPT session ended. Connect again to refresh.");
+        setError(cleared ? "Your saved ChatGPT session is unavailable. Connect again to refresh."
+                : "This phone couldn’t erase the saved session. Clear Work Usage storage in Android settings.");
     }
 
     private void setError(String error) {

@@ -46,7 +46,14 @@ final class AndroidConnections implements CodexClient.Connections {
     }
 
     static String networkError(Throwable cause) {
-        return Build.VERSION.SDK_INT >= 34 ? PlatformHttp.networkError(cause) : null;
+        if (Build.VERSION.SDK_INT >= 34) {
+            try {
+                return PlatformHttp.networkError(cause);
+            } catch (LinkageError unavailable) {
+                // Older builds can be missing the platform HTTP module.
+            }
+        }
+        return null;
     }
 
     private static final class PlatformHttp {
